@@ -28,6 +28,7 @@ import {
   Trash2
 } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
+import { useT } from "@/lib/i18n";
 import {
   ResponsiveContainer,
   PieChart,
@@ -54,23 +55,25 @@ const ACTIVITY_COLORS: Record<string, string> = {
   unknown: "oklch(0.6 0.02 0)"
 };
 
-const translateActivityType = (type: string) => {
+/** Takes the message bundle as an argument: this lives outside the component. */
+const translateActivityType = (type: string, t: ReturnType<typeof useT>) => {
   const map: Record<string, string> = {
-    coding: "코딩 및 개발",
-    searching: "기술 자료 검색",
-    browsing: "일반 웹 서핑",
-    terminal: "터미널 명령 수행",
-    documentation: "문서 및 오피스 작업",
-    communication: "메신저 및 커뮤니케이션",
-    design: "디자인 및 기획",
-    other: "기타 작업",
-    unknown: "기타 작업"
+    coding: t.dashboard.activity.coding,
+    searching: t.dashboard.activity.searching,
+    browsing: t.dashboard.activity.browsing,
+    terminal: t.dashboard.activity.terminal,
+    documentation: t.dashboard.activity.documentation,
+    communication: t.dashboard.activity.communication,
+    design: t.dashboard.activity.design,
+    other: t.dashboard.activity.other,
+    unknown: t.dashboard.activity.other
   };
-  return map[type] || "기타 작업";
+  return map[type] || t.dashboard.activity.other;
 };
 
 export default function DashboardPage() {
   const { isAuthenticated, user } = useAuth();
+  const t = useT();
   const [, navigate] = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInjectingMock, setIsInjectingMock] = useState(false);
@@ -105,11 +108,11 @@ export default function DashboardPage() {
   // tRPC mutations
   const triggerAnalysisMutation = trpc.research.triggerWeeklyAnalysis.useMutation({
     onSuccess: (data) => {
-      toast.success("AI 주간 작업 분석 및 앱 기획 제안이 완료되었습니다!");
+      toast.success(t.dashboard.toasts.analysisDone);
       refetchResearchList();
     },
     onError: (err) => {
-      toast.error(`분석 실패: ${err.message}`);
+      toast.error(t.dashboard.toasts.analysisFailed(err.message));
     }
   });
 
@@ -118,16 +121,16 @@ export default function DashboardPage() {
 
   const clearWeeklyActivitiesMutation = trpc.research.clearWeeklyActivities.useMutation({
     onSuccess: () => {
-      toast.success("실시간 트래킹 정보가 성공적으로 초기화되었습니다.");
+      toast.success(t.dashboard.toasts.resetDone);
       refetchDashboard();
     },
     onError: (err) => {
-      toast.error(`초기화 실패: ${err.message}`);
+      toast.error(t.dashboard.toasts.resetFailed(err.message));
     }
   });
 
   const handleClearWeeklyActivities = () => {
-    if (window.confirm("정말로 모든 실시간 트래킹 정보를 리셋하시겠습니까? 리셋 후에는 복구할 수 없습니다.")) {
+    if (window.confirm(t.dashboard.toasts.confirmReset)) {
       clearWeeklyActivitiesMutation.mutate();
     }
   };
@@ -137,29 +140,29 @@ export default function DashboardPage() {
       stopTrackerMutation.mutate(undefined, {
         onSuccess: (res) => {
           if (res.success) {
-            toast.success("실시간 트래킹이 중지되었습니다.");
+            toast.success(t.dashboard.toasts.trackingStopped);
             refetchTrackerStatus();
           } else {
-            toast.error(`트래킹 중지 실패: ${res.error}`);
+            toast.error(t.dashboard.toasts.stopFailed(res.error ?? ""));
           }
         },
         onError: (err) => {
-          toast.error(`트래킹 중지 오류: ${err.message}`);
+          toast.error(t.dashboard.toasts.stopFailed(err.message));
         }
       });
     } else {
-      toast.info("실시간 트래커 백그라운드 활성화 시도 중...");
+      toast.info(t.dashboard.toasts.startingTracker);
       startTrackerMutation.mutate(undefined, {
         onSuccess: (res) => {
           if (res.success) {
-            toast.success("실시간 백그라운드 트래킹이 시작되었습니다! (터미널창 없이 백그라운드 구동)");
+            toast.success(t.dashboard.toasts.trackingStarted);
             refetchTrackerStatus();
           } else {
-            toast.error(res.error || "트래커 시작 실패. Python 설치 및 환경을 확인해 주세요.");
+            toast.error(res.error || t.dashboard.toasts.startFailed);
           }
         },
         onError: (err) => {
-          toast.error(`트래커 실행 오류: ${err.message}`);
+          toast.error(t.dashboard.toasts.startError(err.message));
         }
       });
     }
@@ -183,7 +186,7 @@ export default function DashboardPage() {
 
   const chartData = Object.entries(typeMap)
     .map(([type, dur]) => ({
-      name: translateActivityType(type),
+      name: translateActivityType(type, t),
       value: Math.round(dur / 60), // in minutes
       rawType: type,
       percentage: totalSeconds > 0 ? ((dur / totalSeconds) * 100).toFixed(1) : "0"
@@ -232,13 +235,13 @@ export default function DashboardPage() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success("데모용 가상 활동 로그 주입 완료!");
+        toast.success(t.dashboard.toasts.mockInjected);
         refetchDashboard();
       } else {
-        toast.error("가상 로그 주입 실패: " + data.error);
+        toast.error(t.dashboard.toasts.mockFailed(String(data.error)));
       }
     } catch (err: any) {
-      toast.error("가상 로그 주입 실패: " + err.message);
+      toast.error(t.dashboard.toasts.mockFailed(err.message));
     } finally {
       setIsInjectingMock(false);
     }
@@ -246,10 +249,10 @@ export default function DashboardPage() {
 
   const handleTriggerAnalysis = () => {
     if (activities.length === 0) {
-      toast.warning("주입되거나 추적된 활동 로그가 없습니다. 먼저 로컬 트래커를 돌리거나 모킹 데이터를 주입하세요!");
+      toast.warning(t.dashboard.toasts.noLogs);
       return;
     }
-    toast.info("AI 분석 파이프라인 가동 중... 잠시만 기다려주세요.");
+    toast.info(t.dashboard.toasts.pipelineRunning);
     triggerAnalysisMutation.mutate();
   };
 
@@ -280,20 +283,20 @@ export default function DashboardPage() {
               <span className="font-semibold text-foreground tracking-tight hidden sm:inline">BuildPlanner</span>
             </button>
             <div className="hidden md:flex items-center gap-4">
-              <button onClick={() => navigate("/")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">리서처</button>
-              <button onClick={() => navigate("/dashboard")} className="text-sm font-medium text-[oklch(0.82_0.18_264)] transition-colors">실시간 모니터링</button>
-              <button onClick={() => navigate("/history")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">히스토리</button>
+              <button onClick={() => navigate("/")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.dashboard.navResearcher}</button>
+              <button onClick={() => navigate("/dashboard")} className="text-sm font-medium text-[oklch(0.82_0.18_264)] transition-colors">{t.dashboard.navMonitoring}</button>
+              <button onClick={() => navigate("/history")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t.dashboard.navHistory}</button>
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              title="설정"
-              aria-label="설정"
+              title={t.nav.settings}
+              aria-label={t.nav.settings}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden lg:inline whitespace-nowrap">설정</span>
+              <span className="hidden lg:inline whitespace-nowrap">{t.nav.settings}</span>
             </button>
             <div
               className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-accent/50 border border-border/50 flex-shrink-0"
@@ -318,7 +321,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 text-sm text-[oklch(0.82_0.18_264)] font-medium mb-1.5">
               <div className="flex items-center gap-1.5">
                 <Monitor className="w-4 h-4" />
-                <span>OS 수준 사용환경 모니터링</span>
+                <span>{t.dashboard.osMonitoring}</span>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 transition-all ${
                 trackerStatus?.isRunning
@@ -326,10 +329,10 @@ export default function DashboardPage() {
                   : "bg-muted text-muted-foreground border-border"
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${trackerStatus?.isRunning ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-                {trackerStatus?.isRunning ? "실시간 연동 중" : "연동 중단됨"}
+                {trackerStatus?.isRunning ? t.dashboard.connected : t.dashboard.disconnected}
               </span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">활동 통계 및 AI 솔루션 대시보드</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{t.dashboard.title}</h1>
           </div>
           <div className="flex gap-2">
             <button
@@ -340,12 +343,12 @@ export default function DashboardPage() {
               {clearWeeklyActivitiesMutation.isPending ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>초기화 중...</span>
+                  <span>{t.dashboard.resetting}</span>
                 </>
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>트래킹 정보 리셋</span>
+                  <span>{t.dashboard.resetTracking}</span>
                 </>
               )}
             </button>
@@ -357,12 +360,12 @@ export default function DashboardPage() {
               {isInjectingMock ? (
                 <>
                   <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
-                  <span>주입 중...</span>
+                  <span>{t.dashboard.injecting}</span>
                 </>
               ) : (
                 <>
                   <Database className="w-3.5 h-3.5" />
-                  <span>데모 가상 로그 주입</span>
+                  <span>{t.dashboard.injectDemoLogs}</span>
                 </>
               )}
             </button>
@@ -382,9 +385,9 @@ export default function DashboardPage() {
                   <Clock className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">총 모니터링 시간</p>
-                  <p className="text-2xl font-bold text-foreground mt-0.5">{totalHours}시간</p>
-                  <p className="text-[10px] text-muted-foreground/60">({totalMinutes}분 수집됨)</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.totalTime}</p>
+                  <p className="text-2xl font-bold text-foreground mt-0.5">{t.dashboard.hours(totalHours)}</p>
+                  <p className="text-[10px] text-muted-foreground/60">{t.dashboard.minutesCollected(totalMinutes)}</p>
                 </div>
               </div>
 
@@ -393,9 +396,9 @@ export default function DashboardPage() {
                   <Cpu className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">감지된 고유 프로세스</p>
-                  <p className="text-2xl font-bold text-foreground mt-0.5">{Object.keys(processMap).length}개</p>
-                  <p className="text-[10px] text-muted-foreground/60">주요 툴 활성 분석 중</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.uniqueProcesses}</p>
+                  <p className="text-2xl font-bold text-foreground mt-0.5">{t.dashboard.processesUnit(Object.keys(processMap).length)}</p>
+                  <p className="text-[10px] text-muted-foreground/60">{t.dashboard.analysingTools}</p>
                 </div>
               </div>
 
@@ -404,12 +407,12 @@ export default function DashboardPage() {
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">가장 높은 비중 활동</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.topActivity}</p>
                   <p className="text-2xl font-bold text-foreground mt-0.5 truncate max-w-[150px]">
-                    {chartData[0] ? chartData[0].name.split(" ")[0] : "기록 없음"}
+                    {chartData[0] ? chartData[0].name.split(" ")[0] : t.dashboard.noRecord}
                   </p>
                   <p className="text-[10px] text-muted-foreground/60">
-                    {chartData[0] ? `${chartData[0].percentage}% 점유` : "데이터를 수집해주세요"}
+                    {chartData[0] ? t.dashboard.share(chartData[0].percentage) : t.dashboard.collectData}
                   </p>
                 </div>
               </div>
@@ -417,16 +420,16 @@ export default function DashboardPage() {
 
             {/* Main Visualized Report */}
             <div className="glass rounded-2xl p-6 border border-border/30 flex-1 min-h-[350px] flex flex-col">
-              <h2 className="text-lg font-semibold text-foreground mb-4">주간 작업 패턴 분석</h2>
+              <h2 className="text-lg font-semibold text-foreground mb-4">{t.dashboard.weeklyPattern}</h2>
               
               {activities.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-accent/40 flex items-center justify-center mb-4">
                     <Database className="w-8 h-8 text-muted-foreground/60" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-1">수집된 활동 데이터가 없습니다</h3>
+                  <h3 className="font-semibold text-foreground mb-1">{t.dashboard.noDataTitle}</h3>
                   <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                    우측의 가이드를 따라 로컬 Windows 활동 트래커 스크립트를 다운로드하여 실행하거나, 데모 가상 로그 주입 버튼을 클릭해 보세요.
+                    {t.dashboard.noDataDesc}
                   </p>
                 </div>
               ) : (
@@ -457,7 +460,7 @@ export default function DashboardPage() {
                             borderRadius: "8px",
                             color: "oklch(0.96 0.005 264)"
                           }}
-                          formatter={(value) => [`${value}분`, "체류 시간"]}
+                          formatter={(value) => [t.dashboard.minutes(String(value)), t.dashboard.dwellTime]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -469,7 +472,7 @@ export default function DashboardPage() {
 
                   {/* Activity Details List */}
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-xs text-muted-foreground/75 uppercase tracking-wider mb-1">분류별 작업 시간</h3>
+                    <h3 className="text-xs text-muted-foreground/75 uppercase tracking-wider mb-1">{t.dashboard.byCategory}</h3>
                     <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto pr-2">
                       {chartData.map((item) => (
                         <div key={item.name} className="flex flex-col gap-1.5">
@@ -482,7 +485,7 @@ export default function DashboardPage() {
                               <span className="font-medium text-foreground">{item.name}</span>
                             </div>
                             <div className="text-muted-foreground">
-                              <span className="text-foreground font-semibold">{item.value}분</span>
+                              <span className="text-foreground font-semibold">{t.dashboard.minutes(item.value)}</span>
                               <span className="text-[10px] ml-1.5">({item.percentage}%)</span>
                             </div>
                           </div>
@@ -506,14 +509,14 @@ export default function DashboardPage() {
             {/* Top Processes Card */}
             {activities.length > 0 && (
               <div className="glass rounded-2xl p-6 border border-border/30">
-                <h2 className="text-sm font-semibold text-foreground mb-4">가장 많이 체류한 앱/프로세스 Top 5</h2>
+                <h2 className="text-sm font-semibold text-foreground mb-4">{t.dashboard.top5}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                   {topProcesses.map((proc, idx) => (
                     <div key={proc.name} className="flex flex-col p-4 rounded-xl bg-accent/30 border border-border/10 relative overflow-hidden">
                       <span className="absolute top-2 right-3 text-xs font-mono text-muted-foreground/35 font-bold">#0{idx+1}</span>
                       <span className="text-xs font-semibold text-foreground truncate mb-1 pr-6" title={proc.name}>{proc.name}</span>
-                      <span className="text-lg font-bold text-[oklch(0.82_0.18_264)]">{proc.minutes}분</span>
-                      <span className="text-[10px] text-muted-foreground mt-1">점유율: {proc.percentage}%</span>
+                      <span className="text-lg font-bold text-[oklch(0.82_0.18_264)]">{t.dashboard.minutes(proc.minutes)}</span>
+                      <span className="text-[10px] text-muted-foreground mt-1">{t.dashboard.occupancy}: {proc.percentage}%</span>
                     </div>
                   ))}
                 </div>
@@ -530,17 +533,16 @@ export default function DashboardPage() {
                   <span>client/public/tracker.py</span>
                 </div>
                 
-                <h2 className="text-lg font-semibold text-foreground mb-3">로컬 작업 모니터링 가이드</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t.dashboard.guideTitle}</h2>
                 <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                  Windows PC 환경의 백그라운드에서 실행하며 활성 창 제목과 사용 시간을 집계하여 본 서버로 로깅하는 스크립트입니다. 
-                  주요 메시지 및 비밀번호 입력 등은 마스킹하여 안전하게 보호됩니다.
+                  {t.dashboard.guideDesc1} {t.dashboard.guideDesc2}
                 </p>
 
                 <div className="space-y-4 mb-6">
                   {[
-                    { step: "1", title: "파이썬 설치 확인", desc: "Python 3.x 이상 버전이 PC에 설치되어 있어야 합니다." },
-                    { step: "2", title: "수집기 스크립트 다운로드", desc: "아래 버튼을 클릭해 스크립트를 로컬에 저장합니다." },
-                    { step: "3", title: "백그라운드 실행", desc: "터미널에서 'python tracker.py' 명령을 실행합니다." }
+                    { step: "1", title: t.dashboard.step1Title, desc: t.dashboard.step1Desc },
+                    { step: "2", title: t.dashboard.step2Title, desc: t.dashboard.step2Desc },
+                    { step: "3", title: t.dashboard.step3Title, desc: t.dashboard.step3Desc }
                   ].map((s) => (
                     <div key={s.step} className="flex gap-3.5 items-start">
                       <div className="w-5 h-5 rounded-full bg-[oklch(0.72_0.18_264/0.1)] border border-[oklch(0.72_0.18_264/0.3)] flex items-center justify-center text-[10px] font-bold text-[oklch(0.82_0.18_264)] flex-shrink-0 mt-0.5">
@@ -557,10 +559,10 @@ export default function DashboardPage() {
                 <div className="bg-accent/40 rounded-xl p-3 border border-border/20 mb-6">
                   <div className="flex gap-2 items-center text-[10px] font-semibold text-[oklch(0.74_0.16_155)] mb-1">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>개인 정보 보호 정책 내장</span>
+                    <span>{t.dashboard.privacyTitle}</span>
                   </div>
                   <p className="text-[9px] text-muted-foreground/90 leading-relaxed">
-                    로그인, 비밀번호, 카드, 카카오톡, 금융 거래 등 민감한 단어가 포함된 활성 창 제목은 "민감한 작업"으로 원천 자동 변환되어 서버로 업로드됩니다.
+                    {t.dashboard.privacyDesc}
                   </p>
                 </div>
               </div>
@@ -578,17 +580,17 @@ export default function DashboardPage() {
                   {startTrackerMutation.isPending || stopTrackerMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>처리 중...</span>
+                      <span>{t.dashboard.processing}</span>
                     </>
                   ) : trackerStatus?.isRunning ? (
                     <>
                       <Pause className="w-4 h-4" />
-                      <span>실시간 트래킹 중지</span>
+                      <span>{t.dashboard.stopTracking}</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-4 h-4 fill-current" />
-                      <span>실시간 백그라운드 트래킹 시작</span>
+                      <span>{t.dashboard.startTracking}</span>
                     </>
                   )}
                 </button>
@@ -599,7 +601,7 @@ export default function DashboardPage() {
                   className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-accent/40 hover:bg-accent/60 border border-border/40 text-muted-foreground hover:text-foreground text-xs font-medium transition-all duration-200"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>수동 실행용 스크립트 다운로드</span>
+                  <span>{t.dashboard.downloadScript}</span>
                 </a>
               </div>
             </div>
@@ -610,7 +612,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Terminal className="w-4 h-4 text-[oklch(0.72_0.18_264)]" />
-                    <h3 className="text-xs font-semibold text-foreground">실시간 트래킹 로그</h3>
+                    <h3 className="text-xs font-semibold text-foreground">{t.dashboard.logTitle}</h3>
                   </div>
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/25 animate-pulse">
                     LIVE
@@ -633,7 +635,7 @@ export default function DashboardPage() {
                     ))
                   ) : (
                     <div className="text-center text-[10px] text-muted-foreground/50 py-16">
-                      로그를 수집하는 중입니다... (5초 간격)
+                      {t.dashboard.collectingLogs}
                     </div>
                   )}
                 </div>
@@ -650,8 +652,8 @@ export default function DashboardPage() {
                 <Brain className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">🤖 AI 맞춤형 유틸리티 앱 추천</h2>
-                <p className="text-xs text-muted-foreground">나의 컴퓨터 작업 환경 및 반복 패턴을 분석하여 효율을 높여줄 솔루션을 기획합니다.</p>
+                <h2 className="text-lg font-bold text-foreground">{t.dashboard.aiTitle}</h2>
+                <p className="text-xs text-muted-foreground">{t.dashboard.aiSubtitle}</p>
               </div>
             </div>
             
@@ -663,12 +665,12 @@ export default function DashboardPage() {
               {triggerAnalysisMutation.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span>분석 진단 중...</span>
+                  <span>{t.dashboard.analysing}</span>
                 </>
               ) : (
                 <>
                   <Brain className="w-4 h-4" />
-                  <span>주간 생산성 진단 & 앱 제안 실행</span>
+                  <span>{t.dashboard.runAnalysis}</span>
                 </>
               )}
             </button>
@@ -678,9 +680,9 @@ export default function DashboardPage() {
           {aiGeneratedPlans.length === 0 ? (
             <div className="border border-dashed border-border/60 rounded-2xl p-12 text-center flex flex-col items-center justify-center">
               <Lightbulb className="w-12 h-12 text-muted-foreground/35 mb-3" />
-              <h3 className="font-semibold text-foreground mb-1">제안된 유틸리티 앱 목록이 없습니다</h3>
+              <h3 className="font-semibold text-foreground mb-1">{t.dashboard.noProposalsTitle}</h3>
               <p className="text-xs text-muted-foreground max-w-md">
-                위 "주간 생산성 진단 & 앱 제안 실행" 버튼을 클릭하여 수집된 작업 이력을 진단하고, 나만을 위한 커스텀 자동화 유틸리티 기획서를 자동으로 생성하세요!
+                {t.dashboard.noProposalsDesc}
               </p>
             </div>
           ) : (
@@ -690,10 +692,9 @@ export default function DashboardPage() {
               <div className="bg-[oklch(0.72_0.18_264/0.05)] border border-[oklch(0.72_0.18_264/0.15)] rounded-xl p-4 flex gap-3">
                 <Brain className="w-5 h-5 text-[oklch(0.82_0.18_264)] shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-semibold text-[oklch(0.82_0.18_264)] mb-1">AI 주간 생산성 병목 분석 진단 리포트</h4>
+                  <h4 className="text-xs font-semibold text-[oklch(0.82_0.18_264)] mb-1">{t.dashboard.reportTitle}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    활동 분석 결과, 주로 터미널 사용과 기술 레퍼런스 및 관련 소스를 수집하는 정보 검색 과정에서 시간이 많이 누수되는 패턴이 감지되었습니다. 
-                    이에 따라 관련 R&D 시간을 대폭 단축하고 복합적인 자료 취합 및 단순 테스트 단계를 기여할 3가지 맞춤형 자동화 유틸리티를 아래와 같이 제안합니다.
+                    {t.dashboard.reportBody}
                   </p>
                 </div>
               </div>
@@ -713,7 +714,7 @@ export default function DashboardPage() {
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-3.5">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeColor}`}>
-                            유틸리티 기획
+                            {t.dashboard.utilityPlan}
                           </span>
                           <span className="text-[10px] text-muted-foreground/60 font-mono">
                             ID: #{project.id}
@@ -721,7 +722,7 @@ export default function DashboardPage() {
                         </div>
                         <h3 className="font-bold text-foreground text-sm mb-2">{planData}</h3>
                         <p className="text-xs text-muted-foreground/80 leading-relaxed mb-4">
-                          본 사용자 맞춤형 앱은 주간 활성 창에서 감지된 잦은 검색 및 수동 빌드 실행 등의 패턴 비효율을 자동화하기 위해 제안되었습니다.
+                          {t.dashboard.proposalNote}
                         </p>
                       </div>
 
@@ -730,7 +731,7 @@ export default function DashboardPage() {
                         className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg bg-[oklch(0.72_0.18_264/0.1)] hover:bg-[oklch(0.72_0.18_264/0.2)] border border-[oklch(0.72_0.18_264/0.2)] text-[oklch(0.82_0.18_264)] font-medium text-xs transition-all duration-200"
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        <span>상세 빌드 계획서 확인</span>
+                        <span>{t.dashboard.viewPlan}</span>
                         <ChevronRight className="w-3 h-3" />
                       </button>
                     </div>

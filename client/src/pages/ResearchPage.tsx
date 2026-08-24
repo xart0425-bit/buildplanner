@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
 import { DevKitDialog } from "@/components/DevKitDialog";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 
 type TabType =
   | "github"
@@ -168,6 +168,7 @@ export default function ResearchPage() {
   const [isPolling, setIsPolling] = useState(true);
   const [planView, setPlanView] = useState<"preview" | "raw">("preview");
   const t = useT();
+  const locale = useLocale();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDevKitOpen, setIsDevKitOpen] = useState(false);
   const utils = trpc.useUtils();
@@ -537,7 +538,7 @@ export default function ResearchPage() {
           <div className="mb-4 text-xs text-muted-foreground/80 flex items-center gap-1.5 animate-fade-in">
             <span>🔄 🤖 AI 에이전트 마지막 모니터링:</span>
             <span className="font-semibold text-foreground font-mono">
-              {new Date(research.lastRefreshedAt).toLocaleString("ko-KR")}
+              {new Date(research.lastRefreshedAt).toLocaleString(locale)}
             </span>
           </div>
         )}

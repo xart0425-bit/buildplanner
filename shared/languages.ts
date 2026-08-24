@@ -7,13 +7,18 @@
  * plan handed to a coding agent usually travels further in English.
  */
 
+/**
+ * `native` is how speakers write the language themselves; `english` is the same name in
+ * English, shown in parentheses so the list stays readable to everyone regardless of the
+ * current UI language.
+ */
 export const ANALYSIS_LANGUAGES = [
-  { code: "en", native: "English", label: "영어", promptName: "English" },
-  { code: "ko", native: "한국어", label: "한국어", promptName: "Korean (한국어)" },
-  { code: "ja", native: "日本語", label: "일본어", promptName: "Japanese (日本語)" },
-  { code: "zh", native: "中文", label: "중국어", promptName: "Simplified Chinese (简体中文)" },
-  { code: "fr", native: "Français", label: "프랑스어", promptName: "French (Français)" },
-  { code: "ru", native: "Русский", label: "러시아어", promptName: "Russian (Русский)" },
+  { code: "en", native: "English", english: "English", promptName: "English" },
+  { code: "ko", native: "한국어", english: "Korean", promptName: "Korean (한국어)" },
+  { code: "ja", native: "日本語", english: "Japanese", promptName: "Japanese (日本語)" },
+  { code: "zh", native: "中文", english: "Chinese", promptName: "Simplified Chinese (简体中文)" },
+  { code: "fr", native: "Français", english: "French", promptName: "French (Français)" },
+  { code: "ru", native: "Русский", english: "Russian", promptName: "Russian (Русский)" },
 ] as const;
 
 export type AnalysisLanguage = (typeof ANALYSIS_LANGUAGES)[number]["code"];

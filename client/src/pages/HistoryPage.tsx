@@ -18,21 +18,22 @@ import {
   Crosshair,
 } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
 const STATUS_CONFIG = {
-  pending: { label: "대기 중", color: "text-muted-foreground", bg: "bg-muted", icon: <Clock className="w-3 h-3" /> },
-  collecting: { label: "수집 중", color: "text-[oklch(0.78_0.14_200)]", bg: "bg-[oklch(0.78_0.14_200/0.1)]", icon: <Search className="w-3 h-3" /> },
-  analyzing: { label: "분석 중", color: "text-[oklch(0.72_0.18_264)]", bg: "bg-[oklch(0.72_0.18_264/0.1)]", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
-  done: { label: "완료", color: "text-[oklch(0.74_0.16_155)]", bg: "bg-[oklch(0.74_0.16_155/0.1)]", icon: <CheckCircle className="w-3 h-3" /> },
-  error: { label: "오류", color: "text-[oklch(0.68_0.20_15)]", bg: "bg-[oklch(0.68_0.20_15/0.1)]", icon: <AlertCircle className="w-3 h-3" /> },
+  pending: { color: "text-muted-foreground", bg: "bg-muted", icon: <Clock className="w-3 h-3" /> },
+  collecting: { color: "text-[oklch(0.78_0.14_200)]", bg: "bg-[oklch(0.78_0.14_200/0.1)]", icon: <Search className="w-3 h-3" /> },
+  analyzing: { color: "text-[oklch(0.72_0.18_264)]", bg: "bg-[oklch(0.72_0.18_264/0.1)]", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+  done: { color: "text-[oklch(0.74_0.16_155)]", bg: "bg-[oklch(0.74_0.16_155/0.1)]", icon: <CheckCircle className="w-3 h-3" /> },
+  error: { color: "text-[oklch(0.68_0.20_15)]", bg: "bg-[oklch(0.68_0.20_15/0.1)]", icon: <AlertCircle className="w-3 h-3" /> },
 };
 
 export default function HistoryPage() {
   const { isAuthenticated } = useAuth();
   const t = useT();
+  const locale = useLocale();
   const [, navigate] = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -50,11 +51,11 @@ export default function HistoryPage() {
 
   const importMutation = trpc.research.import.useMutation({
     onSuccess: (data) => {
-      toast.success("프로젝트를 성공적으로 불러왔습니다.");
+      toast.success(t.toasts.imported);
       navigate(`/research/${data.researchId}`);
     },
     onError: (err) => {
-      toast.error("프로젝트 불러오기 실패: " + err.message);
+      toast.error(t.toasts.importFailed(err.message));
       setIsImporting(false);
     },
   });
@@ -73,15 +74,15 @@ export default function HistoryPage() {
       try {
         const text = event.target?.result;
         if (typeof text !== "string") {
-          throw new Error("올바르지 않은 파일 형식입니다.");
+          throw new Error(t.toasts.badFile);
         }
         const json = JSON.parse(text);
         if (!json.research || !json.research.keyword || !json.research.status) {
-          throw new Error("유효하지 않은 프로젝트 구조입니다.");
+          throw new Error(t.toasts.badProject);
         }
         await importMutation.mutateAsync(json);
       } catch (err: any) {
-        toast.error("불러오기 실패: " + (err.message || "파일을 분석할 수 없습니다."));
+        toast.error(t.toasts.importFailed(err.message || t.toasts.unreadable));
         setIsImporting(false);
       }
     };
@@ -129,9 +130,9 @@ export default function HistoryPage() {
         <div className="max-w-2xl mx-auto">
           {/* Page title */}
           <div className="mb-8 animate-fade-in-up">
-            <h1 className="text-2xl font-bold text-foreground mb-2">리서치 히스토리</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">{t.history.title}</h1>
             <p className="text-muted-foreground text-sm">
-              과거에 수행한 리서치 결과와 생성된 개발 계획서를 확인하세요.
+              {t.historyPage.subtitle}
             </p>
           </div>
 
@@ -147,8 +148,8 @@ export default function HistoryPage() {
                     <Sparkles className="w-5 h-5 text-[oklch(0.72_0.18_264)]" />
                   </div>
                   <div>
-                    <div className="font-medium text-foreground">새 리서치 시작</div>
-                    <div className="text-sm text-muted-foreground">아이디어 키워드로 시작</div>
+                    <div className="font-medium text-foreground">{t.historyPage.newResearch}</div>
+                    <div className="text-sm text-muted-foreground">{t.historyPage.newResearchDesc}</div>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[oklch(0.72_0.18_264)] group-hover:translate-x-1 transition-all" />
@@ -170,8 +171,8 @@ export default function HistoryPage() {
                     )}
                   </div>
                   <div>
-                    <div className="font-medium text-foreground">프로젝트 불러오기</div>
-                    <div className="text-sm text-muted-foreground">JSON 프로젝트 파일 로드</div>
+                    <div className="font-medium text-foreground">{t.historyPage.importProject}</div>
+                    <div className="text-sm text-muted-foreground">{t.historyPage.importProjectDesc}</div>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
@@ -205,16 +206,16 @@ export default function HistoryPage() {
           ) : !researches || researches.length === 0 ? (
             <div className="glass rounded-2xl p-12 border border-border/30 text-center animate-fade-in">
               <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="font-medium text-foreground mb-2">아직 리서치 기록이 없습니다</h3>
+              <h3 className="font-medium text-foreground mb-2">{t.historyPage.emptyTitle}</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                첫 번째 리서치를 시작해 앱 개발 계획서를 자동으로 생성해보세요.
+                {t.historyPage.emptyDesc}
               </p>
               <button
                 onClick={() => navigate("/")}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[oklch(0.72_0.18_264/0.1)] hover:bg-[oklch(0.72_0.18_264/0.2)] border border-[oklch(0.72_0.18_264/0.3)] text-[oklch(0.82_0.18_264)] text-sm font-medium transition-all"
               >
                 <Sparkles className="w-4 h-4" />
-                리서치 시작하기
+                {t.historyPage.startCta}
               </button>
             </div>
           ) : (
@@ -241,17 +242,18 @@ export default function HistoryPage() {
                           <span className="font-medium text-foreground truncate">{r.keyword}</span>
                           {r.mode === "teardown" && (
                             <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 text-[oklch(0.72_0.18_264)] bg-[oklch(0.72_0.18_264/0.1)] border border-[oklch(0.72_0.18_264/0.3)]">
-                              역설계
+                              {t.historyPage.teardownBadge}
                             </span>
                           )}
                           <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0 ${statusCfg.color} ${statusCfg.bg}`}>
                             {statusCfg.icon}
-                            {statusCfg.label}
+                            {t.historyPage.status[r.status as keyof typeof t.historyPage.status] ??
+                          t.historyPage.status.pending}
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {new Date(r.createdAt).toLocaleString("ko-KR", {
+                          {new Date(r.createdAt).toLocaleString(locale, {
                             year: "numeric",
                             month: "short",
                             day: "numeric",

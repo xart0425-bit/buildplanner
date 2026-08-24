@@ -179,7 +179,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             >
               {ANALYSIS_LANGUAGES.map((option) => (
                 <option key={option.code} value={option.code}>
-                  {option.native} ({option.label})
+                  {option.native === option.english
+                    ? option.native
+                    : `${option.native} (${option.english})`}
                 </option>
               ))}
             </select>

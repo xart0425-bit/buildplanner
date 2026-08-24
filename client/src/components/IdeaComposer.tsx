@@ -33,7 +33,7 @@ import {
 } from "@shared/attachments";
 import { ProjectPickerDialog } from "@/components/ProjectPickerDialog";
 import { trpc } from "@/lib/trpc";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 
 /** Base64 inflates by ~4/3, so cap the raw file well under the transport limit. */
 const MAX_IMAGE_BYTES = Math.floor(MAX_IMAGE_DATA_URL_CHARS * 0.7);
@@ -103,6 +103,7 @@ export function IdeaComposer({
   maxLength,
 }: IdeaComposerProps) {
   const t = useT();
+  const locale = useLocale();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -280,7 +281,7 @@ export function IdeaComposer({
                 <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="font-mono truncate max-w-[280px]">{project.path}</span>
                 <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                  {project.fileCount.toLocaleString("ko-KR")}개
+                  {project.fileCount.toLocaleString(locale)}
                   {project.languages[0] ? ` · ${project.languages[0]}` : ""}
                 </span>
                 <button
@@ -402,7 +403,7 @@ export function IdeaComposer({
 
           <div className="flex items-center gap-3 flex-shrink-0">
             <span className="text-[11px] text-muted-foreground/50 tabular-nums hidden sm:inline">
-              {value.length.toLocaleString("ko-KR")}/{maxLength.toLocaleString("ko-KR")}
+              {value.length.toLocaleString(locale)}/{maxLength.toLocaleString(locale)}
             </span>
             <button
               type="submit"

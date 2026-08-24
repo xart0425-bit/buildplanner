@@ -13,6 +13,7 @@ import {
   normalizeLanguage,
   type AnalysisLanguage,
 } from "@shared/languages";
+import { PAGE_MESSAGES, type PageMessages } from "./i18n-pages";
 
 export const LANGUAGE_STORAGE_KEY = "buildplanner-analysis-language";
 const LANGUAGE_CHANGE_EVENT = "buildplanner:language-change";
@@ -45,9 +46,27 @@ export function useLanguage(): AnalysisLanguage {
   return useSyncExternalStore(subscribe, getLanguage, () => DEFAULT_ANALYSIS_LANGUAGE);
 }
 
-/** The message bundle for the current language. */
-export function useT(): Messages {
-  return MESSAGES[useLanguage()] ?? MESSAGES.en;
+const LOCALES: Record<AnalysisLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  zh: "zh-CN",
+  fr: "fr-FR",
+  ru: "ru-RU",
+};
+
+/** BCP-47 locale for date and number formatting, following the UI language. */
+export function useLocale(): string {
+  return LOCALES[useLanguage()] ?? "en-US";
+}
+
+/** The message bundle for the current language, main and page tables merged. */
+export function useT(): Messages & PageMessages {
+  const language = useLanguage();
+  return {
+    ...(MESSAGES[language] ?? MESSAGES.en),
+    ...(PAGE_MESSAGES[language] ?? PAGE_MESSAGES.en),
+  };
 }
 
 const en = {
