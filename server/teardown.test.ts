@@ -3,6 +3,7 @@ import {
   parseLlmJson,
   generateTeardownMarkdown,
   countConfirmedReviews,
+  normalizeSeverity,
   type TeardownResult,
 } from "./teardown";
 import type { SourceItem } from "./collector";
@@ -11,6 +12,27 @@ import { fetchProductComments, extractDomain } from "./collector";
 import type { AnalysisResult } from "./analyzer";
 
 // ─── LLM JSON recovery ────────────────────────────────────────────────────────
+
+describe("normalizeSeverity", () => {
+  it("passes the canonical tokens through", () => {
+    expect(normalizeSeverity("높음")).toBe("높음");
+    expect(normalizeSeverity("중간")).toBe("중간");
+    expect(normalizeSeverity("낮음")).toBe("낮음");
+  });
+
+  it("maps a translated token back instead of collapsing it to medium", () => {
+    expect(normalizeSeverity("High")).toBe("높음");
+    expect(normalizeSeverity("critical")).toBe("높음");
+    expect(normalizeSeverity("faible")).toBe("낮음");
+    expect(normalizeSeverity("低い")).toBe("낮음");
+    expect(normalizeSeverity("Высокая")).toBe("높음");
+  });
+
+  it("falls back to medium for anything unrecognized", () => {
+    expect(normalizeSeverity("banana")).toBe("중간");
+    expect(normalizeSeverity(undefined)).toBe("중간");
+  });
+});
 
 describe("parseLlmJson", () => {
   it("parses plain JSON", () => {

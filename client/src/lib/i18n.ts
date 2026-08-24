@@ -14,6 +14,7 @@ import {
   type AnalysisLanguage,
 } from "@shared/languages";
 import { PAGE_MESSAGES, type PageMessages } from "./i18n-pages";
+import { RESEARCH_MESSAGES, type ResearchMessages } from "./i18n-research";
 
 export const LANGUAGE_STORAGE_KEY = "buildplanner-analysis-language";
 const LANGUAGE_CHANGE_EVENT = "buildplanner:language-change";
@@ -61,11 +62,12 @@ export function useLocale(): string {
 }
 
 /** The message bundle for the current language, main and page tables merged. */
-export function useT(): Messages & PageMessages {
+export function useT(): Messages & PageMessages & ResearchMessages {
   const language = useLanguage();
   return {
     ...(MESSAGES[language] ?? MESSAGES.en),
     ...(PAGE_MESSAGES[language] ?? PAGE_MESSAGES.en),
+    ...(RESEARCH_MESSAGES[language] ?? RESEARCH_MESSAGES.en),
   };
 }
 

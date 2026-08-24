@@ -255,7 +255,11 @@ ${languageInstruction(language)}
   const rawContent = response.choices?.[0]?.message?.content;
   const content = typeof rawContent === "string" ? rawContent : "{}";
   try {
-    return JSON.parse(content) as AnalysisResult;
+    const parsed = JSON.parse(content) as AnalysisResult;
+    // Normalize here, not just in generateMarkdown — this object is what gets stored and
+    // what the research screen keys its difficulty badge off.
+    parsed.implementationDifficulty = normalizeDifficulty(parsed.implementationDifficulty);
+    return parsed;
   } catch {
     return getDefaultAnalysis(keyword);
   }
@@ -291,6 +295,32 @@ function getDefaultAnalysis(keyword: string): AnalysisResult {
  * fields even when it parses successfully, so every array/object access in
  * generateMarkdown must be guaranteed to exist.
  */
+type Difficulty = AnalysisResult["implementationDifficulty"];
+
+const DIFFICULTIES: Difficulty[] = ["초급", "중급", "고급", "전문가"];
+
+/**
+ * `implementationDifficulty` is an enum token, not prose — `planStrings.difficultyLevels`
+ * keys its display label off the Korean literal. The prompt tells the model to copy the
+ * token verbatim, but one writing the rest of its answer in another language will sometimes
+ * translate it anyway, so map the obvious translations back before they reach the document.
+ */
+const DIFFICULTY_ALIASES: Record<string, Difficulty> = {
+  beginner: "초급", easy: "초급", 初級: "초급", 入门: "초급", débutant: "초급",
+  debutant: "초급", начальный: "초급",
+  intermediate: "중급", medium: "중급", moderate: "중급", 中級: "중급", 中级: "중급",
+  intermédiaire: "중급", intermediaire: "중급", средний: "중급",
+  advanced: "고급", hard: "고급", 上級: "고급", 高级: "고급", avancé: "고급",
+  avance: "고급", продвинутый: "고급",
+  expert: "전문가", エキスパート: "전문가", 专家: "전문가", экспертный: "전문가",
+};
+
+export function normalizeDifficulty(value: unknown): Difficulty {
+  const raw = String(value ?? "").trim();
+  if (DIFFICULTIES.includes(raw as Difficulty)) return raw as Difficulty;
+  return DIFFICULTY_ALIASES[raw.toLowerCase()] ?? "중급";
+}
+
 function normalizeAnalysis(
   keyword: string,
   analysis: Partial<AnalysisResult> | null | undefined
@@ -301,7 +331,9 @@ function normalizeAnalysis(
     coreTechnologies: a.coreTechnologies ?? defaults.coreTechnologies,
     openSourceReferences: a.openSourceReferences ?? defaults.openSourceReferences,
     similarServices: a.similarServices ?? defaults.similarServices,
-    implementationDifficulty: a.implementationDifficulty ?? defaults.implementationDifficulty,
+    implementationDifficulty: normalizeDifficulty(
+      a.implementationDifficulty ?? defaults.implementationDifficulty
+    ),
     difficultyReason: a.difficultyReason ?? defaults.difficultyReason,
     licenseNotes: a.licenseNotes ?? defaults.licenseNotes,
     techStack: {
@@ -833,6 +865,8 @@ export async function generateProposalDetailWithLLM(
   prop: { title: string; keyword: string; reason: string; difficulty: string; features: string[] },
   apiKeys?: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ): Promise<AnalysisResult> {
+  // `language` steers the prompt only — it must not reach the transport layer.
+  const { language = DEFAULT_ANALYSIS_LANGUAGE, ...llmKeys } = apiKeys ?? {};
   const prompt = `당신은 시니어 소프트웨어 아키텍트이자 기술 연구원입니다. 다음 생산성 도구 제안을 바탕으로 실제 구체적인 구현을 위한 상세 기술 스택 분석 및 개발 계획(JSON)을 설계해 주세요.
 
 제안 앱 정보:
@@ -842,7 +876,9 @@ export async function generateProposalDetailWithLLM(
 - 난이도: ${prop.difficulty}
 - 핵심 기능: ${prop.features.join(", ")}
 
-다음 JSON 스키마에 맞게 정교하고 실제적인 아키텍처 분석 결과를 반환해주세요. 모든 기술 스택 및 개발 단계는 임의의 샘플이 아니라, 이 도구의 고유 성격과 기능 요구사항에 적합하게 구체적으로 설계해 작성해야 합니다. 모든 텍스트는 한국어로 작성하세요:
+${languageInstruction(language)}
+
+다음 JSON 스키마에 맞게 정교하고 실제적인 아키텍처 분석 결과를 반환해주세요. 모든 기술 스택 및 개발 단계는 임의의 샘플이 아니라, 이 도구의 고유 성격과 기능 요구사항에 적합하게 구체적으로 설계해 작성해야 합니다:
 
 {
   "coreTechnologies": ["핵심 기술/라이브러리/프레임워크 목록 (예: PyAutoGUI, Electron, sqlite3 등, 최대 8개)"],
@@ -879,11 +915,14 @@ export async function generateProposalDetailWithLLM(
   try {
     const response = await invokeLLM({
       messages: [
-        { role: "system", content: "당신은 실력 있는 소프트웨어 아키텍트입니다. 항상 스키마에 맞는 완벽하고 실질적인 JSON만 반환하세요." },
+        {
+          role: "system",
+          content: `당신은 실력 있는 소프트웨어 아키텍트입니다. 항상 스키마에 맞는 완벽하고 실질적인 JSON만 반환하세요. ${languageInstruction(language)}`,
+        },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" } as ResponseFormat,
-      ...apiKeys,
+      ...llmKeys,
     });
 
     const rawContent = response.choices?.[0]?.message?.content;
@@ -897,7 +936,7 @@ export async function generateProposalDetailWithLLM(
       similarServices: [],
       implementationDifficulty: prop.difficulty as any,
       difficultyReason: prop.reason,
-      licenseNotes: ["개인 개발 유틸리티이므로 라이선스로부터 자유로움"],
+      licenseNotes: [planStrings(language).empty.defaultLicenseNote],
       techStack: {
         frontend: ["React", "Electron"],
         backend: ["Node.js"],
@@ -907,7 +946,7 @@ export async function generateProposalDetailWithLLM(
       },
       coreFeatures: prop.features,
       developmentPhases: [
-        { phase: "1단계: MVP 개발", duration: "1주", tasks: prop.features },
+        { phase: planStrings(language).fallbackPhase, duration: planStrings(language).fallbackDuration, tasks: prop.features },
       ],
       risks: [],
       summary: prop.reason,
@@ -922,9 +961,12 @@ export async function generateWeeklyAppProposals(
 ): Promise<WeeklyProposalResult> {
   console.log(`[Research] Starting weekly app proposals generation for user ID ${userId} with ${activities.length} logs...`);
 
+  // `language` steers the prompt only — it must not reach the transport layer.
+  const { language = DEFAULT_ANALYSIS_LANGUAGE, ...llmKeys } = apiKeys ?? {};
+
   if (activities.length === 0) {
     return {
-      diagnosis: "이번 주 수집된 작업 활동 로그가 충분하지 않습니다. 로컬 작업 모니터링 스크립트를 먼저 가동해 주세요.",
+      diagnosis: planStrings(language).empty.noActivityLogs,
       proposals: [],
     };
   }
@@ -958,8 +1000,10 @@ export async function generateWeeklyAppProposals(
 ${summaryText}
 
 사용자의 작업 형태, 자주 사용하는 프로세스, 코딩/문서작성/브라우징 비중을 파악하여:
-1. 사용자가 이번 주에 겪었을 법한 생산성 병목(시간 낭비 요인, 단순 반복 수동 작업)을 한국어로 분석(Diagnosis)해주세요.
-2. 이 병목을 자동화하거나 해결하기 위해 **새로 직접 개발해 사용하면 업무 효율을 극대화할 수 있는 맞춤형 유틸리티/소프트웨어 아이디어 3종**을 한국어로 기획해주세요.
+1. 사용자가 이번 주에 겪었을 법한 생산성 병목(시간 낭비 요인, 단순 반복 수동 작업)을 분석(Diagnosis)해주세요.
+2. 이 병목을 자동화하거나 해결하기 위해 **새로 직접 개발해 사용하면 업무 효율을 극대화할 수 있는 맞춤형 유틸리티/소프트웨어 아이디어 3종**을 기획해주세요.
+
+${languageInstruction(language)}
 
 다음 JSON 스키마에 부합하게 분석 결과를 반환해주세요. 다른 텍스트는 절대 작성하지 말고 유효한 JSON 객체만 반환하세요:
 
@@ -980,11 +1024,14 @@ ${summaryText}
   try {
     const response = await invokeLLM({
       messages: [
-        { role: "system", content: "당신은 생산성 전문가이자 소프트웨어 아키텍트입니다. 항상 정해진 스키마의 JSON만 반환하세요." },
+        {
+          role: "system",
+          content: `당신은 생산성 전문가이자 소프트웨어 아키텍트입니다. 항상 정해진 스키마의 JSON만 반환하세요. ${languageInstruction(language)}`,
+        },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" } as ResponseFormat,
-      ...apiKeys,
+      ...llmKeys,
     });
 
     const rawContent = response.choices?.[0]?.message?.content;

@@ -70,7 +70,12 @@ export interface PlanStrings {
     similar: string;
     noDescription: string;
     defaultLicenseNote: string;
+    /** Shown by the dashboard when no desktop activity has been collected yet. */
+    noActivityLogs: string;
   };
+  /** Used when the LLM call fails and only the proposal's own fields are available. */
+  fallbackPhase: string;
+  fallbackDuration: string;
   defaultScreens: string[];
 }
 
@@ -140,7 +145,11 @@ const en: PlanStrings = {
     noDescription: "No description",
     defaultLicenseNote:
       "- Check the license of each collected open-source project individually.\n- MIT and Apache 2.0 permit commercial use; GPL requires releasing your source.",
+    noActivityLogs:
+      "Not enough activity was collected this week. Start the local activity monitor first.",
   },
+  fallbackPhase: "Phase 1: MVP",
+  fallbackDuration: "1 week",
   defaultScreens: [
     "**Main screen** — enter a keyword and start research",
     "**Results screen** — collected sources by tab (GitHub / HF / Papers / HN)",
@@ -215,7 +224,11 @@ const ko: PlanStrings = {
     noDescription: "설명 없음",
     defaultLicenseNote:
       "- 수집된 오픈소스의 라이선스를 개별적으로 확인하세요.\n- MIT, Apache 2.0은 상업적 사용 가능하나, GPL은 소스코드 공개 의무가 있습니다.",
+    noActivityLogs:
+      "이번 주 수집된 작업 활동 로그가 충분하지 않습니다. 로컬 작업 모니터링 스크립트를 먼저 가동해 주세요.",
   },
+  fallbackPhase: "1단계: MVP 개발",
+  fallbackDuration: "1주",
   defaultScreens: [
     "**메인 화면** — 키워드 입력 및 리서치 시작",
     "**리서치 결과 화면** — 수집된 소스 탭별 표시 (GitHub / HF / Papers / HN)",
@@ -247,6 +260,13 @@ const ja: PlanStrings = {
   },
   difficulty: "実装難易度",
   difficultyLevels: { 초급: "初級", 중급: "中級", 고급: "上級", 전문가: "エキスパート" },
+  empty: {
+    ...en.empty,
+    noActivityLogs:
+      "今週の作業ログが足りません。まずローカルの作業モニタリングを起動してください。",
+  },
+  fallbackPhase: "フェーズ1: MVP 開発",
+  fallbackDuration: "1週間",
   labels: {
     ...en.labels,
     mainKeyword: "主要キーワード",
@@ -303,6 +323,12 @@ const zh: PlanStrings = {
   },
   difficulty: "实现难度",
   difficultyLevels: { 초급: "入门", 중급: "中级", 고급: "高级", 전문가: "专家" },
+  empty: {
+    ...en.empty,
+    noActivityLogs: "本周收集到的活动日志不足。请先启动本地活动监控。",
+  },
+  fallbackPhase: "阶段一：MVP 开发",
+  fallbackDuration: "1 周",
   labels: {
     ...en.labels,
     mainKeyword: "主要关键词",
@@ -358,6 +384,13 @@ const fr: PlanStrings = {
   },
   difficulty: "Difficulté de mise en œuvre",
   difficultyLevels: { 초급: "Débutant", 중급: "Intermédiaire", 고급: "Avancé", 전문가: "Expert" },
+  empty: {
+    ...en.empty,
+    noActivityLogs:
+      "Pas assez d'activité collectée cette semaine. Lancez d'abord le moniteur d'activité local.",
+  },
+  fallbackPhase: "Phase 1 : MVP",
+  fallbackDuration: "1 semaine",
   labels: {
     ...en.labels,
     mainKeyword: "Mot-clé principal",
@@ -414,6 +447,13 @@ const ru: PlanStrings = {
   },
   difficulty: "Сложность реализации",
   difficultyLevels: { 초급: "Начальный", 중급: "Средний", 고급: "Продвинутый", 전문가: "Экспертный" },
+  empty: {
+    ...en.empty,
+    noActivityLogs:
+      "На этой неделе собрано слишком мало активности. Сначала запустите локальный монитор активности.",
+  },
+  fallbackPhase: "Этап 1: MVP",
+  fallbackDuration: "1 неделя",
   labels: {
     ...en.labels,
     mainKeyword: "Основное ключевое слово",

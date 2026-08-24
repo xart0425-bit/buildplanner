@@ -44,5 +44,5 @@ export function languageName(code: AnalysisLanguage): string {
  */
 export function languageInstruction(code: AnalysisLanguage): string {
   const name = languageName(code);
-  return `Write every human-readable value in ${name}. This applies to every string in the response, including summaries, titles, reasons and list items. Do not use any other language for prose, regardless of the language of this prompt or of the collected sources. Keep code, identifiers, file paths, commands, URLs and product names as they are.`;
+  return `Write every human-readable value in ${name}. This applies to every string in the response, including summaries, titles, reasons and list items. Do not use any other language for prose, regardless of the language of this prompt or of the collected sources. Keep code, identifiers, file paths, commands, URLs and product names as they are. One exception: where the schema lists a fixed set of choices separated by "|", copy the chosen option back exactly as written — those are enum tokens, not prose, and must never be translated.`;
 }

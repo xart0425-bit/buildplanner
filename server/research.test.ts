@@ -1,11 +1,34 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { collectAllSources } from "./collector";
-import { buildDocsPromptBlock, buildProjectsPromptBlock, generateMarkdown } from "./analyzer";
+import {
+  buildDocsPromptBlock,
+  buildProjectsPromptBlock,
+  generateMarkdown,
+  normalizeDifficulty,
+} from "./analyzer";
 import type { AnalysisResult } from "./analyzer";
 import type { SourceItem } from "./collector";
 import { isEmptyAttachments, parseAttachments, type IdeaAttachments } from "@shared/attachments";
 
 // ─── Collector unit tests ─────────────────────────────────────────────────────
+
+describe("normalizeDifficulty", () => {
+  it("passes the canonical tokens through", () => {
+    expect(normalizeDifficulty("초급")).toBe("초급");
+    expect(normalizeDifficulty("전문가")).toBe("전문가");
+  });
+
+  it("maps a translated token back so the difficulty label still resolves", () => {
+    expect(normalizeDifficulty("Advanced")).toBe("고급");
+    expect(normalizeDifficulty("Beginner")).toBe("초급");
+    expect(normalizeDifficulty("Intermédiaire")).toBe("중급");
+    expect(normalizeDifficulty("专家")).toBe("전문가");
+  });
+
+  it("falls back to intermediate for anything unrecognized", () => {
+    expect(normalizeDifficulty("???")).toBe("중급");
+  });
+});
 
 describe("collector - score helpers", () => {
   it("should return SourceItem array from collectAllSources (mocked)", async () => {

@@ -334,7 +334,7 @@ ${formatCommunityVoices(sources)}
   ]
 }
 
-모든 내용은 한국어로 작성하세요.`,
+`,
     { principles: [] },
     apiKeys
   );
@@ -358,6 +358,27 @@ const FAULT_CATEGORIES: FaultLine["category"][] = [
 ];
 
 const SEVERITIES: FaultLine["severity"][] = ["낮음", "중간", "높음"];
+
+/**
+ * `severity` is an enum token, not prose — the display layer keys colours and marks off the
+ * Korean literal. The prompt says to copy the token verbatim, but a model writing the rest of
+ * its answer in another language will sometimes translate it anyway. Mapping the obvious
+ * translations back beats silently collapsing a critical fault line to "중간".
+ */
+const SEVERITY_ALIASES: Record<string, FaultLine["severity"]> = {
+  high: "높음", severe: "높음", critical: "높음", 高: "높음", 高い: "높음", élevé: "높음",
+  elevee: "높음", elevé: "높음", высокая: "높음", высокий: "높음",
+  medium: "중간", moderate: "중간", 中: "중간", 中程度: "중간", moyen: "중간",
+  moyenne: "중간", средняя: "중간", средний: "중간",
+  low: "낮음", minor: "낮음", 低: "낮음", 低い: "낮음", faible: "낮음",
+  низкая: "낮음", низкий: "낮음",
+};
+
+export function normalizeSeverity(value: unknown): FaultLine["severity"] {
+  const raw = String(value ?? "").trim();
+  if (SEVERITIES.includes(raw as FaultLine["severity"])) return raw as FaultLine["severity"];
+  return SEVERITY_ALIASES[raw.toLowerCase()] ?? "중간";
+}
 
 export async function findFaultLines(
   productName: string,
@@ -403,7 +424,7 @@ ${formatBuildingBlocks(sources)}
   ]
 }
 
-모든 내용은 한국어로 작성하세요.`,
+`,
     { faultLines: [] },
     apiKeys
   );
@@ -414,7 +435,7 @@ ${formatBuildingBlocks(sources)}
       category: FAULT_CATEGORIES.includes(f.category) ? f.category : "구조적 한계",
       title: String(f.title),
       evidence: String(f.evidence ?? ""),
-      severity: SEVERITIES.includes(f.severity) ? f.severity : "중간",
+      severity: normalizeSeverity(f.severity),
       opportunity: String(f.opportunity ?? ""),
     }));
 }
@@ -486,7 +507,7 @@ ${faultLines.map((f, i) => `${i + 1}. [${f.category}/${f.severity}] **${f.title}
   "moat": "이 설계가 원본이 쉽게 따라올 수 없는 이유"
 }
 
-핵심 기능은 4~6개. 모든 내용은 한국어로 작성하세요.`,
+핵심 기능은 4~6개. `,
     fallback,
     apiKeys
   );
@@ -556,7 +577,7 @@ ${leapfrog.features.map((f, i) => `${i + 1}. **${f.name}**: ${f.description}\n  
   "legalNotes": ["실제 개발 시 확인해야 할 법적 주의사항"]
 }
 
-overlaps는 실제로 발견된 것만 넣으세요. 없으면 빈 배열입니다. 모든 내용은 한국어로 작성하세요.`,
+overlaps는 실제로 발견된 것만 넣으세요. 없으면 빈 배열입니다. `,
     fallback,
     apiKeys
   );

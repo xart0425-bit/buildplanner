@@ -129,35 +129,45 @@ interface Source {
   metadata: unknown;
 }
 
-const STATUS_STEPS = [
-  { key: "pending", label: "대기 중", icon: <Loader2 className="w-4 h-4" /> },
-  { key: "collecting", label: "소스 수집 중", icon: <TrendingUp className="w-4 h-4" /> },
-  { key: "analyzing", label: "AI 분석 중", icon: <Brain className="w-4 h-4" /> },
-  { key: "done", label: "완료", icon: <CheckCircle className="w-4 h-4" /> },
+type T = ReturnType<typeof useT>;
+
+const statusSteps = (t: T) => [
+  { key: "pending", label: t.research2.steps.pending, icon: <Loader2 className="w-4 h-4" /> },
+  { key: "collecting", label: t.research2.steps.collecting, icon: <TrendingUp className="w-4 h-4" /> },
+  { key: "analyzing", label: t.research2.steps.analyzing, icon: <Brain className="w-4 h-4" /> },
+  { key: "done", label: t.research2.steps.done, icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
-const TAB_CONFIG = [
-  { key: "github" as TabType, label: "GitHub", color: "text-[oklch(0.82_0.01_264)]", activeColor: "bg-[oklch(0.82_0.01_264/0.1)] border-[oklch(0.82_0.01_264/0.3)]" },
-  { key: "huggingface" as TabType, label: "Hugging Face", color: "text-[oklch(0.80_0.16_75)]", activeColor: "bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]" },
-  { key: "papers" as TabType, label: "Papers", color: "text-[oklch(0.78_0.14_200)]", activeColor: "bg-[oklch(0.78_0.14_200/0.1)] border-[oklch(0.78_0.14_200/0.3)]" },
-  { key: "hackernews" as TabType, label: "Hacker News", color: "text-[oklch(0.68_0.20_15)]", activeColor: "bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]" },
-  { key: "analysis" as TabType, label: "AI 분석", color: "text-[oklch(0.72_0.18_264)]", activeColor: "bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)]" },
-  { key: "plan" as TabType, label: "계획서", color: "text-[oklch(0.74_0.16_155)]", activeColor: "bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]" },
+const tabConfig = (t: T) => [
+  { key: "github" as TabType, label: t.research2.tabs.github, color: "text-[oklch(0.82_0.01_264)]", activeColor: "bg-[oklch(0.82_0.01_264/0.1)] border-[oklch(0.82_0.01_264/0.3)]" },
+  { key: "huggingface" as TabType, label: t.research2.tabs.huggingface, color: "text-[oklch(0.80_0.16_75)]", activeColor: "bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]" },
+  { key: "papers" as TabType, label: t.research2.tabs.papers, color: "text-[oklch(0.78_0.14_200)]", activeColor: "bg-[oklch(0.78_0.14_200/0.1)] border-[oklch(0.78_0.14_200/0.3)]" },
+  { key: "hackernews" as TabType, label: t.research2.tabs.hackernews, color: "text-[oklch(0.68_0.20_15)]", activeColor: "bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]" },
+  { key: "analysis" as TabType, label: t.research2.tabs.analysis, color: "text-[oklch(0.72_0.18_264)]", activeColor: "bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)]" },
+  { key: "plan" as TabType, label: t.research2.tabs.plan, color: "text-[oklch(0.74_0.16_155)]", activeColor: "bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]" },
 ];
 
 // Prepended in teardown mode — the chain's output is the point of the report, so it leads.
-const TEARDOWN_TAB_CONFIG = [
-  { key: "principles" as TabType, label: "① 원리", color: "text-[oklch(0.72_0.18_264)]", activeColor: "bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)]" },
-  { key: "faultlines" as TabType, label: "② 균열", color: "text-[oklch(0.68_0.20_15)]", activeColor: "bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]" },
-  { key: "leapfrog" as TabType, label: "③ 도약", color: "text-[oklch(0.74_0.16_155)]", activeColor: "bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]" },
-  { key: "intel" as TabType, label: "원본 자료", color: "text-[oklch(0.80_0.16_75)]", activeColor: "bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]" },
+const teardownTabConfig = (t: T) => [
+  { key: "principles" as TabType, label: t.research2.tabs.principles, color: "text-[oklch(0.72_0.18_264)]", activeColor: "bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)]" },
+  { key: "faultlines" as TabType, label: t.research2.tabs.faultlines, color: "text-[oklch(0.68_0.20_15)]", activeColor: "bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]" },
+  { key: "leapfrog" as TabType, label: t.research2.tabs.leapfrog, color: "text-[oklch(0.74_0.16_155)]", activeColor: "bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]" },
+  { key: "intel" as TabType, label: t.research2.tabs.intel, color: "text-[oklch(0.80_0.16_75)]", activeColor: "bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]" },
 ];
 
+/** Severity arrives from the analysis as a Korean-valued enum; style and label it here. */
 const SEVERITY_STYLE: Record<string, string> = {
   높음: "text-[oklch(0.68_0.20_15)] bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]",
   중간: "text-[oklch(0.80_0.16_75)] bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]",
   낮음: "text-[oklch(0.74_0.16_155)] bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]",
 };
+
+const severityLabel = (severity: string, t: T) =>
+  severity === "높음"
+    ? t.research2.severity.high
+    : severity === "낮음"
+      ? t.research2.severity.low
+      : t.research2.severity.medium;
 
 export default function ResearchPage() {
   const { id } = useParams<{ id: string }>();
@@ -176,12 +186,12 @@ export default function ResearchPage() {
 
   const modifyPlanMutation = trpc.research.modifyPlan.useMutation({
     onSuccess: () => {
-      toast.success("수정 사항을 반영 중입니다. 잠시만 기다려주세요.");
+      toast.success(t.research2.toasts.modifyStarted);
       setInstruction("");
       setIsPolling(true);
     },
     onError: (err) => {
-      toast.error(`오류가 발생했습니다: ${err.message}`);
+      toast.error(t.research2.toasts.modifyError(err.message));
     },
   });
 
@@ -189,15 +199,19 @@ export default function ResearchPage() {
 
   const toggleCronMutation = trpc.research.toggleCronSchedule.useMutation({
     onSuccess: (data) => {
-      toast.success(`모니터링 주기가 ${
-        data.interval === "none" ? "비활성화(수동)"
-        : data.interval === "daily" ? "매일 자동 갱신"
-        : "매주 자동 갱신"
-      }(으)로 설정되었습니다.`);
+      toast.success(
+        t.research2.toasts.scheduleSet(
+          data.interval === "none"
+            ? t.research2.toasts.intervalNone
+            : data.interval === "daily"
+              ? t.research2.toasts.intervalDaily
+              : t.research2.toasts.intervalWeekly
+        )
+      );
       utils.research.getStatus.invalidate({ researchId });
     },
     onError: (err) => {
-      toast.error(`스케줄 설정 실패: ${err.message}`);
+      toast.error(t.research2.toasts.scheduleFailed(err.message));
     },
     onSettled: () => {
       setIsTogglingCron(false);
@@ -211,12 +225,12 @@ export default function ResearchPage() {
 
   const reRunMutation = trpc.research.reRun.useMutation({
     onSuccess: () => {
-      toast.success("R&D 소스 수집기 및 분석 파이프라인이 가동되었습니다!");
+      toast.success(t.research2.toasts.rerunStarted);
       setIsPolling(true);
       utils.research.getStatus.invalidate({ researchId });
     },
     onError: (err) => {
-      toast.error(`리서치 재실행 오류: ${err.message}`);
+      toast.error(t.research2.toasts.rerunError(err.message));
     }
   });
 
@@ -326,7 +340,7 @@ export default function ResearchPage() {
 
   const isTeardown = research?.mode === "teardown";
   const teardown = (plan?.teardownJson ?? null) as TeardownData | null;
-  const visibleTabs = isTeardown ? [...TEARDOWN_TAB_CONFIG, ...TAB_CONFIG] : TAB_CONFIG;
+  const visibleTabs = isTeardown ? [...teardownTabConfig(t), ...tabConfig(t)] : tabConfig(t);
 
   const tabCount = (key: TabType): number | null => {
     switch (key) {
@@ -342,7 +356,8 @@ export default function ResearchPage() {
     }
   };
 
-  const currentStep = STATUS_STEPS.findIndex((s) => s.key === research?.status);
+  const steps = statusSteps(t);
+  const currentStep = steps.findIndex((s) => s.key === research?.status);
 
   const renderScore = (score: number | null) => {
     const s = score ?? 0;
@@ -493,7 +508,7 @@ export default function ResearchPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {STATUS_STEPS.map((step, idx) => (
+              {steps.map((step, idx) => (
                 <div key={step.key} className="flex items-center gap-2 flex-1">
                   <div className={`flex items-center gap-2 flex-1 ${idx <= currentStep ? "opacity-100" : "opacity-30"}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
@@ -507,7 +522,7 @@ export default function ResearchPage() {
                     </div>
                     <span className="text-sm font-medium text-foreground hidden sm:block">{step.label}</span>
                   </div>
-                  {idx < STATUS_STEPS.length - 1 && (
+                  {idx < steps.length - 1 && (
                     <div className={`h-px flex-1 mx-2 transition-all ${idx < currentStep ? "bg-[oklch(0.74_0.16_155/0.5)]" : "bg-border"}`} />
                   )}
                 </div>
@@ -526,8 +541,8 @@ export default function ResearchPage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[oklch(0.68_0.20_15)] flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-foreground mb-1">리서치 중 오류가 발생했습니다</h3>
-                <p className="text-sm text-muted-foreground">{research.errorMessage ?? "알 수 없는 오류"}</p>
+                <h3 className="font-semibold text-foreground mb-1">{t.research2.errorTitle}</h3>
+                <p className="text-sm text-muted-foreground">{research.errorMessage ?? t.research2.unknownError}</p>
               </div>
             </div>
           </div>
@@ -536,7 +551,7 @@ export default function ResearchPage() {
         {/* Last refreshed status */}
         {research?.status === "done" && research.lastRefreshedAt && (
           <div className="mb-4 text-xs text-muted-foreground/80 flex items-center gap-1.5 animate-fade-in">
-            <span>🔄 🤖 AI 에이전트 마지막 모니터링:</span>
+            <span>{t.research2.lastMonitored}</span>
             <span className="font-semibold text-foreground font-mono">
               {new Date(research.lastRefreshedAt).toLocaleString(locale)}
             </span>
@@ -548,10 +563,10 @@ export default function ResearchPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 animate-fade-in">
             {(isTeardown
               ? [
-                  { label: "추출된 원리", count: teardown?.principles.length ?? 0, color: "text-[oklch(0.72_0.18_264)]" },
-                  { label: "발견된 균열", count: teardown?.faultLines.length ?? 0, color: "text-[oklch(0.68_0.20_15)]" },
-                  { label: "도약 기능", count: teardown?.leapfrog.features.length ?? 0, color: "text-[oklch(0.74_0.16_155)]" },
-                  { label: "차별화 점수", count: teardown?.divergence.score ?? 0, color: "text-[oklch(0.78_0.14_200)]" },
+                  { label: t.research2.stats.principles, count: teardown?.principles.length ?? 0, color: "text-[oklch(0.72_0.18_264)]" },
+                  { label: t.research2.stats.faultLines, count: teardown?.faultLines.length ?? 0, color: "text-[oklch(0.68_0.20_15)]" },
+                  { label: t.research2.stats.leapFeatures, count: teardown?.leapfrog.features.length ?? 0, color: "text-[oklch(0.74_0.16_155)]" },
+                  { label: t.research2.stats.divergenceScore, count: teardown?.divergence.score ?? 0, color: "text-[oklch(0.78_0.14_200)]" },
                 ]
               : [
                   { label: "GitHub", count: githubSources.length, color: "text-[oklch(0.82_0.01_264)]" },
@@ -604,7 +619,7 @@ export default function ResearchPage() {
           {activeTab === "principles" && (
             <div className="space-y-4 animate-fade-in">
               {!teardown ? (
-                <TeardownPending label="원본의 작동 원리를 추출하는 중입니다..." />
+                <TeardownPending label={t.research2.principlesPending} />
               ) : (
                 <>
                   <div className="glass rounded-2xl p-6 border border-[oklch(0.72_0.18_264/0.2)]">
@@ -619,14 +634,16 @@ export default function ResearchPage() {
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">{teardown.target.oneLine}</p>
                         <p className="text-xs text-muted-foreground/70 mt-2">
-                          기능 목록이 아니라, 이 제품이 <strong className="text-foreground">왜 작동하는지</strong>에 대한 메커니즘 분해입니다.
+                          {t.research2.principlesNote1}{" "}
+                    <strong className="text-foreground">{t.research2.principlesNoteStrong}</strong>
+                    {t.research2.principlesNote2}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {teardown.principles.length === 0 ? (
-                    <EmptyState message="작동 원리를 추출하지 못했습니다. 공식 URL을 입력하면 정확도가 올라갑니다." />
+                    <EmptyState message={t.research2.principlesEmpty} />
                   ) : (
                     teardown.principles.map((p, i) => (
                       <div key={i} className="glass rounded-2xl p-6 border border-border/30">
@@ -638,16 +655,16 @@ export default function ResearchPage() {
                         </h4>
                         <div className="space-y-3 text-sm">
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">메커니즘</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.research2.mechanism}</div>
                             <p className="text-muted-foreground leading-relaxed">{p.mechanism}</p>
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">작동 이유</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.research2.whyItWorks}</div>
                             <p className="text-muted-foreground leading-relaxed">{p.whyItWorks}</p>
                           </div>
                           {p.evidence && (
                             <div className="pt-2 border-t border-border/30">
-                              <div className="text-xs text-muted-foreground/60">근거: {p.evidence}</div>
+                              <div className="text-xs text-muted-foreground/60">{t.research2.evidence}: {p.evidence}</div>
                             </div>
                           )}
                         </div>
@@ -663,24 +680,23 @@ export default function ResearchPage() {
           {activeTab === "faultlines" && (
             <div className="space-y-4 animate-fade-in">
               {!teardown ? (
-                <TeardownPending label="원본의 균열을 분석하는 중입니다..." />
+                <TeardownPending label={t.research2.faultPending} />
               ) : (
                 <>
                   <div className="glass rounded-2xl p-6 border border-[oklch(0.68_0.20_15/0.2)]">
                     <div className="flex items-start gap-3">
                       <Crosshair className="w-5 h-5 text-[oklch(0.68_0.20_15)] flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-semibold text-foreground mb-1">균열 분석</h3>
+                        <h3 className="font-semibold text-foreground mb-1">{t.research2.faultTitle}</h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          원본을 이기는 방법은 더 잘 만드는 것이 아니라, 원본이 피할 수 없었던 제약을 없애는 것입니다.
-                          아래는 원본 설계자가 감수한 타협들입니다.
+                          {t.research2.faultNote1} {t.research2.faultNote2}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {teardown.faultLines.length === 0 ? (
-                    <EmptyState message="근거 있는 균열을 발견하지 못했습니다." />
+                    <EmptyState message={t.research2.faultEmpty} />
                   ) : (
                     teardown.faultLines.map((f, i) => (
                       <div key={i} className="glass rounded-2xl p-6 border border-border/30">
@@ -695,17 +711,17 @@ export default function ResearchPage() {
                                 SEVERITY_STYLE[f.severity] ?? SEVERITY_STYLE["중간"]
                               }`}
                             >
-                              {f.severity}
+                              {severityLabel(f.severity, t)}
                             </span>
                           </div>
                         </div>
                         <div className="space-y-3 text-sm">
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">근거</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.research2.evidence}</div>
                             <p className="text-muted-foreground leading-relaxed">{f.evidence}</p>
                           </div>
                           <div className="p-3 rounded-xl bg-[oklch(0.74_0.16_155/0.06)] border border-[oklch(0.74_0.16_155/0.15)]">
-                            <div className="text-xs text-[oklch(0.74_0.16_155)] uppercase tracking-wider mb-1">기회</div>
+                            <div className="text-xs text-[oklch(0.74_0.16_155)] uppercase tracking-wider mb-1">{t.research2.opportunity}</div>
                             <p className="text-muted-foreground leading-relaxed">{f.opportunity}</p>
                           </div>
                         </div>
@@ -721,7 +737,7 @@ export default function ResearchPage() {
           {activeTab === "leapfrog" && (
             <div className="space-y-4 animate-fade-in">
               {!teardown ? (
-                <TeardownPending label="상위 개념 제품을 설계하는 중입니다..." />
+                <TeardownPending label={t.research2.leapPending} />
               ) : (
                 <>
                   <div className="glass rounded-2xl p-6 border border-[oklch(0.74_0.16_155/0.25)]">
@@ -734,7 +750,7 @@ export default function ResearchPage() {
                         </p>
                         {teardown.leapfrog.thesis && (
                           <div className="p-3 rounded-xl bg-accent/40 border border-border/30">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">왜 지금 가능한가</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.research2.whyNow}</div>
                             <p className="text-sm text-muted-foreground leading-relaxed">{teardown.leapfrog.thesis}</p>
                           </div>
                         )}
@@ -747,12 +763,12 @@ export default function ResearchPage() {
                     <div className="flex items-center justify-between gap-4 mb-4">
                       <h4 className="font-semibold text-foreground flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4 text-[oklch(0.78_0.14_200)]" />
-                        차별화 감사
+                        {t.research2.divergenceAudit}
                       </h4>
                       <div className="flex items-center gap-3">
                         {teardown.regenerated && (
                           <span className="text-xs px-2 py-1 rounded-full bg-accent text-muted-foreground">
-                            재설계 1회
+                            {t.research2.regeneratedOnce}
                           </span>
                         )}
                         <span
@@ -784,10 +800,10 @@ export default function ResearchPage() {
 
                     <p className="text-sm text-muted-foreground mb-4">
                       {teardown.divergence.score >= 80
-                        ? "✅ 원본과 독립적인 설계로 판정되었습니다."
+                        ? t.research2.verdictHigh
                         : teardown.divergence.score >= 60
-                          ? "🟡 독립성은 확보했으나 아래 항목은 개발 전 재검토를 권합니다."
-                          : "🔴 원본 의존도가 높습니다. 아래 항목을 수정한 뒤 착수하세요."}
+                          ? t.research2.verdictMid
+                          : t.research2.verdictLow}
                     </p>
 
                     {teardown.divergence.overlaps.length > 0 && (
@@ -798,8 +814,8 @@ export default function ResearchPage() {
                             className="p-3 rounded-xl bg-[oklch(0.68_0.20_15/0.06)] border border-[oklch(0.68_0.20_15/0.15)]"
                           >
                             <div className="text-sm font-medium text-foreground mb-1">⚠️ {o.item}</div>
-                            <div className="text-xs text-muted-foreground">위험: {o.risk}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">수정 방향: {o.fix}</div>
+                            <div className="text-xs text-muted-foreground">{t.research2.risk}: {o.risk}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{t.research2.fixDirection}: {o.fix}</div>
                           </div>
                         ))}
                       </div>
@@ -807,7 +823,7 @@ export default function ResearchPage() {
 
                     {teardown.divergence.legalNotes.length > 0 && (
                       <div className="pt-3 border-t border-border/30">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">법적 확인 사항</div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{t.research2.legalChecks}</div>
                         <ul className="space-y-1">
                           {teardown.divergence.legalNotes.map((n, i) => (
                             <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
@@ -820,14 +836,14 @@ export default function ResearchPage() {
                     )}
 
                     <p className="text-xs text-muted-foreground/60 mt-4 pt-3 border-t border-border/30">
-                      ⚖️ 공개 정보 기반 분석이며 법률 자문이 아닙니다. 제품화 전 전문가 검토를 권장합니다.
+                      {t.research2.legalDisclaimer}
                     </p>
                   </div>
 
                   {/* Architecture shift */}
                   {teardown.leapfrog.architectureShift && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h4 className="font-semibold text-foreground mb-2">구조적 전환</h4>
+                      <h4 className="font-semibold text-foreground mb-2">{t.research2.architectureShift}</h4>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {teardown.leapfrog.architectureShift}
                       </p>
@@ -848,18 +864,18 @@ export default function ResearchPage() {
                       {f.addressesFaultLine && (
                         <div className="pl-8 mb-3">
                           <span className="text-xs px-2 py-1 rounded-full bg-[oklch(0.68_0.20_15/0.08)] text-[oklch(0.68_0.20_15)] border border-[oklch(0.68_0.20_15/0.2)]">
-                            해소하는 균열: {f.addressesFaultLine}
+                            {t.research2.addressesFaultLine}: {f.addressesFaultLine}
                           </span>
                         </div>
                       )}
 
                       <div className="pl-8 grid sm:grid-cols-2 gap-3">
                         <div className="p-3 rounded-xl bg-accent/30 border border-border/30">
-                          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">원본의 방식</div>
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.research2.originalWay}</div>
                           <p className="text-xs text-muted-foreground/80 leading-relaxed">{f.originalApproach}</p>
                         </div>
                         <div className="p-3 rounded-xl bg-[oklch(0.74_0.16_155/0.06)] border border-[oklch(0.74_0.16_155/0.2)]">
-                          <div className="text-xs text-[oklch(0.74_0.16_155)] uppercase tracking-wider mb-1">우리의 방식</div>
+                          <div className="text-xs text-[oklch(0.74_0.16_155)] uppercase tracking-wider mb-1">{t.research2.ourWay}</div>
                           <p className="text-xs text-foreground leading-relaxed">{f.newApproach}</p>
                         </div>
                       </div>
@@ -868,7 +884,7 @@ export default function ResearchPage() {
 
                   {teardown.leapfrog.moat && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h4 className="font-semibold text-foreground mb-2">방어 가능성</h4>
+                      <h4 className="font-semibold text-foreground mb-2">{t.research2.moat}</h4>
                       <p className="text-sm text-muted-foreground leading-relaxed">{teardown.leapfrog.moat}</p>
                     </div>
                   )}
@@ -881,14 +897,14 @@ export default function ResearchPage() {
           {activeTab === "intel" && (
             <div className="space-y-4 animate-fade-in">
               {webSources.length === 0 && reviewSources.length === 0 ? (
-                <EmptyState message="원본 자료를 수집하지 못했습니다. 공식 URL을 입력하면 공개 페이지를 분석합니다." />
+                <EmptyState message={t.research2.intelEmpty} />
               ) : (
                 <>
                   {webSources.length > 0 && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
                       <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Globe className="w-4 h-4 text-[oklch(0.80_0.16_75)]" />
-                        공식 페이지 ({webSources.length})
+                        {t.research2.officialPages} ({webSources.length})
                       </h4>
                       <div className="space-y-3">
                         {webSources.map((s) => {
@@ -898,11 +914,11 @@ export default function ResearchPage() {
                               <summary className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:text-[oklch(0.80_0.16_75)] transition-colors list-none">
                                 <ChevronRight className="w-4 h-4 flex-shrink-0 group-open:rotate-90 transition-transform" />
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-muted-foreground flex-shrink-0">
-                                  {meta.pageLabel ?? "페이지"}
+                                  {meta.pageLabel ?? t.research2.page}
                                 </span>
                                 <span className="truncate">{s.title}</span>
                                 <span className="text-xs text-muted-foreground/50 flex-shrink-0 ml-auto">
-                                  {meta.chars ?? 0}자
+                                  {t.research2.chars(meta.chars ?? 0)}
                                 </span>
                               </summary>
                               <div className="mt-2 ml-6 p-3 rounded-xl bg-accent/30 border border-border/30">
@@ -930,10 +946,10 @@ export default function ResearchPage() {
                     <div className="glass rounded-2xl p-6 border border-border/30">
                       <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-[oklch(0.68_0.20_15)]" />
-                        사용자 실제 발언 ({reviewSources.length})
+                        {t.research2.userVoices} ({reviewSources.length})
                       </h4>
                       <p className="text-xs text-muted-foreground/70 mb-4">
-                        균열 분석의 근거가 된 Hacker News 댓글입니다.
+                        {t.research2.voicesNote}
                       </p>
                       <div className="space-y-3">
                         {reviewSources.map((s) => {
@@ -970,9 +986,9 @@ export default function ResearchPage() {
               {githubSources.length === 0 ? (
                 <div className="glass rounded-2xl p-8 border border-border/30 text-center flex flex-col items-center justify-center min-h-[320px] w-full my-2">
                   <Github className="w-12 h-12 text-muted-foreground/35 mb-4" />
-                  <h3 className="font-semibold text-foreground mb-1.5">글로벌 R&D 정보 수집 전입니다</h3>
+                  <h3 className="font-semibold text-foreground mb-1.5">{t.research2.preCollectTitle}</h3>
                   <p className="text-xs text-muted-foreground max-w-md mb-6 leading-relaxed">
-                    AI가 기획서 뼈대는 설계하였으나, 실제 GitHub 코드 저장소, Hugging Face AI 모델, Papers 학술 논문 정보를 인터넷에서 실시간 수집 및 비교 분석하기 전 단계입니다.
+                    {t.research2.preCollectDesc}
                   </p>
                   <button
                     onClick={handleReRun}
@@ -982,12 +998,12 @@ export default function ResearchPage() {
                     {reRunMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>수집기 파이프라인 가동 중...</span>
+                        <span>{t.research2.collectingNow}</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4" />
-                        <span>실시간 오픈소스/논문 수집 & R&D 계획 완성</span>
+                        <span>{t.research2.startCollect}</span>
                       </>
                     )}
                   </button>
@@ -1010,7 +1026,7 @@ export default function ResearchPage() {
                         <span className="flex items-center gap-1"><Star className="w-3 h-3" />{(meta.stars ?? 0).toLocaleString()}</span>
                         <span className="flex items-center gap-1"><GitFork className="w-3 h-3" />{(meta.forks ?? 0).toLocaleString()}</span>
                         {meta.license && <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{meta.license}</span>}
-                        {meta.updatedAt && <span>업데이트: {new Date(meta.updatedAt).toLocaleDateString("ko-KR")}</span>}
+                        {meta.updatedAt && <span>{t.research2.updated}: {new Date(meta.updatedAt).toLocaleDateString(locale)}</span>}
                       </div>
                       {Array.isArray(meta.topics) && meta.topics.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1030,7 +1046,7 @@ export default function ResearchPage() {
           {activeTab === "huggingface" && (
             <div className="grid gap-3">
               {hfSources.length === 0 ? (
-                <EmptyState message="Hugging Face 모델/Space를 찾지 못했습니다." />
+                <EmptyState message={t.research2.hfEmpty} />
               ) : (
                 hfSources.map((s, i) => {
                   const meta = (s.metadata ?? {}) as SourceMeta;
@@ -1046,8 +1062,8 @@ export default function ResearchPage() {
                       badge={{ label: meta.type === "space" ? "Space" : meta.pipeline_tag ?? "Model", color: "text-[oklch(0.80_0.16_75)] bg-[oklch(0.80_0.16_75/0.08)]" }}
                     >
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
-                        {meta.downloads != null && <span className="flex items-center gap-1"><Download className="w-3 h-3" />{(meta.downloads).toLocaleString()} 다운로드</span>}
-                        {meta.likes != null && <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{(meta.likes).toLocaleString()} 좋아요</span>}
+                        {meta.downloads != null && <span className="flex items-center gap-1"><Download className="w-3 h-3" />{(meta.downloads).toLocaleString(locale)} {t.research2.downloads}</span>}
+                        {meta.likes != null && <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{(meta.likes).toLocaleString(locale)} {t.research2.likes}</span>}
                       </div>
                     </SourceCard>
                   );
@@ -1060,7 +1076,7 @@ export default function ResearchPage() {
           {activeTab === "papers" && (
             <div className="grid gap-3">
               {paperSources.length === 0 ? (
-                <EmptyState message="관련 논문을 찾지 못했습니다." />
+                <EmptyState message={t.research2.papersEmpty} />
               ) : (
                 paperSources.map((s, i) => {
                   const meta = (s.metadata ?? {}) as SourceMeta;
@@ -1073,20 +1089,20 @@ export default function ResearchPage() {
                       description={s.description}
                       score={s.score}
                       renderScore={renderScore}
-                      badge={{ label: meta.hasCode ? "코드 있음" : "코드 없음", color: meta.hasCode ? "text-[oklch(0.74_0.16_155)] bg-[oklch(0.74_0.16_155/0.08)]" : "text-muted-foreground bg-muted" }}
+                      badge={{ label: meta.hasCode ? t.research2.hasCode : t.research2.noCode, color: meta.hasCode ? "text-[oklch(0.74_0.16_155)] bg-[oklch(0.74_0.16_155/0.08)]" : "text-muted-foreground bg-muted" }}
                     >
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
                         {meta.stars != null && meta.stars > 0 && <span className="flex items-center gap-1"><Star className="w-3 h-3" />{meta.stars.toLocaleString()} GitHub Stars</span>}
                         {(meta as any).upvotes != null && (meta as any).upvotes > 0 && (
                           <span className="flex items-center gap-1 text-[oklch(0.80_0.16_75)]">
                             <Heart className="w-3 h-3 fill-current" />
-                            {(meta as any).upvotes.toLocaleString()} 추천
+                            {(meta as any).upvotes.toLocaleString(locale)} {t.research2.upvotes}
                           </span>
                         )}
-                        {meta.published && <span>발표: {new Date(meta.published).toLocaleDateString("ko-KR")}</span>}
+                        {meta.published && <span>{t.research2.published}: {new Date(meta.published).toLocaleDateString(locale)}</span>}
                         {meta.repository && (
                           <a href={meta.repository} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[oklch(0.78_0.14_200)] hover:underline">
-                            <Code2 className="w-3 h-3" />코드 보기
+                            <Code2 className="w-3 h-3" />{t.research2.viewCode}
                           </a>
                         )}
                       </div>
@@ -1101,7 +1117,7 @@ export default function ResearchPage() {
           {activeTab === "hackernews" && (
             <div className="grid gap-3">
               {hnSources.length === 0 ? (
-                <EmptyState message="Hacker News 토론을 찾지 못했습니다." />
+                <EmptyState message={t.research2.hnEmpty} />
               ) : (
                 hnSources.map((s, i) => {
                   const meta = (s.metadata ?? {}) as SourceMeta;
@@ -1117,11 +1133,11 @@ export default function ResearchPage() {
                       badge={{ label: "HN", color: "text-[oklch(0.68_0.20_15)] bg-[oklch(0.68_0.20_15/0.08)]" }}
                     >
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
-                        <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" />{meta.points ?? 0} 포인트</span>
-                        <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{meta.comments ?? 0} 댓글</span>
+                        <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" />{meta.points ?? 0} {t.research2.points}</span>
+                        <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{meta.comments ?? 0} {t.research2.comments}</span>
                         {meta.author && <span>by {meta.author}</span>}
                         {meta.hnUrl && (
-                          <a href={meta.hnUrl} target="_blank" rel="noopener noreferrer" className="text-[oklch(0.68_0.20_15)] hover:underline">HN 토론 보기</a>
+                          <a href={meta.hnUrl} target="_blank" rel="noopener noreferrer" className="text-[oklch(0.68_0.20_15)] hover:underline">{t.research2.viewHn}</a>
                         )}
                       </div>
                     </SourceCard>
@@ -1137,7 +1153,7 @@ export default function ResearchPage() {
               {!analysis ? (
                 <div className="glass rounded-2xl p-8 border border-border/30 text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-[oklch(0.72_0.18_264)] mx-auto mb-3" />
-                  <p className="text-muted-foreground">AI 분석 중입니다...</p>
+                  <p className="text-muted-foreground">{t.research2.analysing}</p>
                 </div>
               ) : (
                 <>
@@ -1145,18 +1161,20 @@ export default function ResearchPage() {
                   <div className="glass rounded-2xl p-6 border border-[oklch(0.72_0.18_264/0.2)]">
                     <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                       <Brain className="w-4 h-4 text-[oklch(0.72_0.18_264)]" />
-                      프로젝트 요약
+                      {t.research2.projectSummary}
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">{analysis.summary as string}</p>
                     <div className="mt-4 flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">구현 난이도:</span>
+                      <span className="text-sm text-muted-foreground">{t.research2.difficultyLabel}</span>
                       <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${
                         analysis.implementationDifficulty === "초급" ? "text-[oklch(0.74_0.16_155)] bg-[oklch(0.74_0.16_155/0.1)] border-[oklch(0.74_0.16_155/0.3)]"
                         : analysis.implementationDifficulty === "중급" ? "text-[oklch(0.80_0.16_75)] bg-[oklch(0.80_0.16_75/0.1)] border-[oklch(0.80_0.16_75/0.3)]"
                         : analysis.implementationDifficulty === "고급" ? "text-[oklch(0.68_0.20_15)] bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]"
                         : "text-[oklch(0.62_0.22_25)] bg-[oklch(0.62_0.22_25/0.1)] border-[oklch(0.62_0.22_25/0.3)]"
                       }`}>
-                        {analysis.implementationDifficulty as string}
+                        {t.research2.difficulty[
+                          analysis.implementationDifficulty as keyof typeof t.research2.difficulty
+                        ] ?? (analysis.implementationDifficulty as string)}
                       </span>
                       <span className="text-sm text-muted-foreground">{analysis.difficultyReason as string}</span>
                     </div>
@@ -1165,7 +1183,7 @@ export default function ResearchPage() {
                   {/* Core technologies */}
                   {Array.isArray(analysis.coreTechnologies) && analysis.coreTechnologies.length > 0 && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h3 className="font-semibold text-foreground mb-3">핵심 기술</h3>
+                      <h3 className="font-semibold text-foreground mb-3">{t.research2.coreTech}</h3>
                       <div className="flex flex-wrap gap-2">
                         {(analysis.coreTechnologies as string[]).map((t) => (
                           <span key={t} className="text-sm px-3 py-1.5 rounded-full bg-[oklch(0.72_0.18_264/0.08)] text-[oklch(0.82_0.18_264)] border border-[oklch(0.72_0.18_264/0.2)]">{t}</span>
@@ -1177,7 +1195,7 @@ export default function ResearchPage() {
                   {/* Tech stack */}
                   {analysis.techStack && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h3 className="font-semibold text-foreground mb-4">추천 기술 스택</h3>
+                      <h3 className="font-semibold text-foreground mb-4">{t.research2.recommendedStack}</h3>
                       <div className="grid sm:grid-cols-2 gap-4">
                         {Object.entries(analysis.techStack as Record<string, string[]>).map(([area, techs]) => (
                           <div key={area}>
@@ -1196,7 +1214,7 @@ export default function ResearchPage() {
                   {/* Core features */}
                   {Array.isArray(analysis.coreFeatures) && analysis.coreFeatures.length > 0 && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h3 className="font-semibold text-foreground mb-3">핵심 기능</h3>
+                      <h3 className="font-semibold text-foreground mb-3">{t.research2.coreFeatures}</h3>
                       <ul className="space-y-2">
                         {(analysis.coreFeatures as string[]).map((f, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -1211,12 +1229,12 @@ export default function ResearchPage() {
                   {/* Risks */}
                   {Array.isArray(analysis.risks) && analysis.risks.length > 0 && (
                     <div className="glass rounded-2xl p-6 border border-border/30">
-                      <h3 className="font-semibold text-foreground mb-3">리스크 및 라이선스</h3>
+                      <h3 className="font-semibold text-foreground mb-3">{t.research2.risksLicenses}</h3>
                       <div className="space-y-3">
                         {(analysis.risks as Array<{risk: string; mitigation: string}>).map((r, i) => (
                           <div key={i} className="p-3 rounded-xl bg-[oklch(0.68_0.20_15/0.06)] border border-[oklch(0.68_0.20_15/0.15)]">
                             <div className="text-sm font-medium text-foreground mb-1">⚠️ {r.risk}</div>
-                            <div className="text-xs text-muted-foreground">대응: {r.mitigation}</div>
+                            <div className="text-xs text-muted-foreground">{t.research2.mitigation}: {r.mitigation}</div>
                           </div>
                         ))}
                       </div>
@@ -1233,7 +1251,7 @@ export default function ResearchPage() {
               {!plan?.markdownContent ? (
                 <div className="glass rounded-2xl p-8 border border-border/30 text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-[oklch(0.74_0.16_155)] mx-auto mb-3" />
-                  <p className="text-muted-foreground">계획서 생성 중입니다...</p>
+                  <p className="text-muted-foreground">{t.research2.planGenerating}</p>
                 </div>
               ) : (
                 <>
@@ -1251,7 +1269,7 @@ export default function ResearchPage() {
                           }`}
                         >
                           {v === "preview" ? (
-                            <span className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" />미리보기</span>
+                            <span className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" />{t.research2.preview}</span>
                           ) : (
                             <span className="flex items-center gap-1.5"><Code2 className="w-3.5 h-3.5" />Markdown</span>
                           )}
@@ -1264,14 +1282,14 @@ export default function ResearchPage() {
                         className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-all"
                       >
                         <Copy className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">복사</span>
+                        <span className="hidden sm:inline">{t.research2.copy}</span>
                       </button>
                       <button
                         onClick={handleDownload}
                         className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[oklch(0.74_0.16_155/0.1)] hover:bg-[oklch(0.74_0.16_155/0.2)] border border-[oklch(0.74_0.16_155/0.3)] text-[oklch(0.74_0.16_155)] transition-all"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">다운로드</span>
+                        <span className="hidden sm:inline">{t.research2.download}</span>
                       </button>
                     </div>
                   </div>
@@ -1300,10 +1318,10 @@ export default function ResearchPage() {
           <div className="mt-8 glass rounded-2xl p-6 border border-border/30 hover:border-border/50 transition-all duration-200 animate-fade-in">
             <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[oklch(0.72_0.18_264)]" />
-              계획서 수정 및 피드백 반영
+              {t.research2.modifyTitle}
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              생성된 개발 계획서에 추가하고 싶거나 수정하고 싶은 내용을 입력해 보세요. AI가 기존 분석 결과와 소스를 참고하여 계획서를 다시 작성합니다.
+              {t.research2.modifyDesc}
             </p>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -1313,7 +1331,7 @@ export default function ResearchPage() {
               <textarea
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
-                placeholder="예: 데이터베이스를 PostgreSQL로 변경하고, Docker 배포 장을 추가해줘"
+                placeholder={t.research2.modifyPlaceholder}
                 className="w-full h-24 px-4 py-3 text-sm rounded-xl bg-background border border-border/40 focus:border-[oklch(0.72_0.18_264/0.5)] focus:ring-1 focus:ring-[oklch(0.72_0.18_264/0.5)] focus:outline-none resize-none transition-all placeholder:text-muted-foreground/30"
                 disabled={modifyPlanMutation.isPending}
               />
@@ -1326,12 +1344,12 @@ export default function ResearchPage() {
                   {modifyPlanMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>반영 중...</span>
+                      <span>{t.research2.applying}</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>반영하기</span>
+                      <span>{t.research2.apply}</span>
                     </>
                   )}
                 </button>
@@ -1367,6 +1385,7 @@ function SourceCard({
   delay?: number;
   renderScore: (score: number | null) => React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div
       className="glass rounded-2xl p-5 border border-border/30 hover:border-border/60 transition-all duration-200 group animate-fade-in-up"
@@ -1379,7 +1398,7 @@ function SourceCard({
               {badge.label}
             </span>
             <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
-              <span>점수</span>
+              <span>{t.research2.score}</span>
               {renderScore(score)}
             </div>
           </div>
@@ -1413,12 +1432,13 @@ function EmptyState({ message }: { message: string }) {
 
 /** Shown while the four-stage teardown chain is still running. */
 function TeardownPending({ label }: { label: string }) {
+  const t = useT();
   return (
     <div className="glass rounded-2xl p-12 border border-border/30 text-center animate-fade-in">
       <Loader2 className="w-8 h-8 animate-spin text-[oklch(0.72_0.18_264)] mx-auto mb-3" />
       <p className="text-muted-foreground text-sm">{label}</p>
       <p className="text-xs text-muted-foreground/50 mt-2">
-        원리 추출 → 균열 분석 → 도약 설계 → 차별화 감사 순으로 진행됩니다.
+        {t.research2.teardownProgress}
       </p>
     </div>
   );

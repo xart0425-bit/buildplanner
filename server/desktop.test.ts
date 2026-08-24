@@ -115,6 +115,11 @@ describe("generateWeeklyAppProposals", () => {
   it("returns empty diagnosis if no activities", async () => {
     const result = await generateWeeklyAppProposals(1, []);
     expect(result.proposals.length).toBe(0);
+    expect(result.diagnosis).toContain("Not enough activity was collected");
+  });
+
+  it("writes the empty diagnosis in the selected language", async () => {
+    const result = await generateWeeklyAppProposals(1, [], { language: "ko" });
     expect(result.diagnosis).toContain("작업 활동 로그가 충분하지 않습니다");
   });
 });
