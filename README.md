@@ -6,6 +6,17 @@
 LLM이 그 결과를 앱 개발 계획서로 정리한 다음, 그 계획서를 **Spec + Loop 구조의 개발 킷(.zip)** 으로 내보냅니다.
 압축을 풀어 Claude Code / Codex / Gemini CLI 에 폴더째 열어주면 그날 바로 개발이 시작됩니다.
 
+### 설치 없이 바로 실행해보기
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/xart0425-bit/buildplanner)
+
+버튼을 누르면 브라우저 안에 개발 환경이 뜨고, 의존성 설치와 서버 실행까지 자동으로 진행된 뒤
+**3000 포트 미리보기가 저절로 열립니다.** 설치할 것도, 입력할 명령도 없습니다.
+LLM 키는 앱 우측 상단 **[설정]** 에 넣으면 되고, 서버에는 아무 키도 저장되지 않습니다.
+(GitHub 계정당 매월 무료 사용량이 제공되며, 창을 닫으면 자동으로 중지됩니다.)
+
+내 URL로 띄우고 싶다면 — [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xart0425-bit/buildplanner)
+
 ![메인 화면](docs/screenshots/02-composer.png)
 
 ---
@@ -106,26 +117,38 @@ pnpm db:push
 
 ### 1) GitHub Codespaces — 설치 없이 브라우저에서 (권장)
 
-저장소에서 **Code ▸ Codespaces ▸ Create codespace** 를 누르면 컨테이너가 뜨고 의존성이 자동 설치됩니다.
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/xart0425-bit/buildplanner)
 
-```bash
-pnpm dev     # 3000 포트 미리보기가 자동으로 열립니다
-```
+위 버튼(또는 저장소의 **Code ▸ Codespaces ▸ Create codespace**)만 누르면 끝입니다.
+[.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) 이 다음을 자동으로 처리합니다.
 
-[.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) 이 포함되어 있어 별도 설정이 필요 없습니다.
-컨테이너는 내 계정 소유라 로컬 폴더 참조 기능도 그대로 쓸 수 있습니다(경로 직접 입력 방식).
+| 단계 | 처리 |
+|---|---|
+| 컨테이너 생성 시 | `corepack enable && pnpm install` |
+| 접속 시 | `pnpm dev` 실행 |
+| 서버가 뜨면 | 3000 포트를 전달하고 미리보기 창을 자동으로 오픈 |
+
+컨테이너는 내 계정 소유라 로컬 폴더 참조 기능도 쓸 수 있습니다.
+다만 폴더 선택 창은 Windows 전용이라 Codespaces에서는 **경로 직접 입력** 방식만 나타납니다.
 
 ### 2) 컨테이너로 아무 호스트에나 배포
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xart0425-bit/buildplanner)
+
+버튼을 누르면 [render.yaml](render.yaml) 대로 서비스가 만들어집니다. `JWT_SECRET` 은 자동 생성되고,
+`ALLOW_LOCAL_FS=false` 로 로컬 폴더 기능은 꺼진 채 배포됩니다.
+
+직접 컨테이너를 돌리려면:
 
 ```bash
 docker build -t buildplanner .
 docker run -p 3000:3000 -e JWT_SECRET=$(openssl rand -hex 32) buildplanner
 ```
 
-Render / Railway / Fly.io 등 Node 컨테이너를 받는 곳이면 그대로 올라갑니다.
 방문자가 각자 [설정]에 자기 키를 넣는 구조라 **서버에 API 키를 둘 필요가 없습니다.**
 
-> **공개 배포 전에 꼭 읽어주세요** — 아래 [보안](#보안) 항목의 인증 관련 제약이 있습니다.
+> **공개 URL로 배포하기 전에 꼭 읽어주세요** — 아래 [보안](#보안) 항목의 인증 관련 제약이 있습니다.
+> 현재 인증은 우회 모드라, 공개된 인스턴스에 접속하는 사람은 **모두 같은 계정을 공유**합니다.
 
 ---
 

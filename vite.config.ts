@@ -31,6 +31,9 @@ export default defineConfig({
       usePolling: true,
       interval: 300,
     },
+    // Dead configuration in this project: Vite runs in middleware mode behind Express and
+    // server/_core/vite.ts passes `allowedHosts: true`, which replaces this whole block.
+    // Editing this list has no effect — change setupVite() instead.
     allowedHosts: [
       "localhost",
       "127.0.0.1",

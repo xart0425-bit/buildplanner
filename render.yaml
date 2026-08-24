@@ -1,0 +1,23 @@
+# Render 배포 청사진 (Blueprint).
+# README 의 "Deploy to Render" 버튼이 이 파일을 읽어 서비스를 만듭니다.
+#
+# 서버에 API 키를 두지 않습니다. 접속한 사람이 앱 안 [설정]에 자기 Gemini/OpenAI
+# 키를 넣으면 브라우저에만 저장되고 요청 헤더로 전달됩니다.
+services:
+  - type: web
+    name: buildplanner
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # 세션 쿠키 서명 키 — Render 가 임의 값을 생성합니다.
+      - key: JWT_SECRET
+        generateValue: true
+      # 호스팅된 인스턴스는 서버 디스크를 노출하지 않습니다.
+      - key: ALLOW_LOCAL_FS
+        value: "false"
+      # DATABASE_URL 을 주지 않으면 인메모리로 동작합니다(재시작 시 초기화).
+      # 영구 보관하려면 Render 대시보드에서 MySQL 연결 문자열을 추가하세요.

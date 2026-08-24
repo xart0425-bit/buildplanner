@@ -8,10 +8,10 @@
       "onAutoForward": "openPreview"
     }
   },
+  // 컨테이너를 처음 만들 때 한 번: 의존성 설치
   "postCreateCommand": "corepack enable && pnpm install",
-  "postAttachCommand": {
-    "hint": "echo '\\n▶ pnpm dev  로 서버를 띄운 뒤 3000 포트 미리보기를 여세요. LLM 키는 앱 안 [설정]에 넣습니다.\\n'"
-  },
+  // 접속할 때마다: 개발 서버 자동 실행 → 3000 포트 미리보기가 저절로 열립니다
+  "postAttachCommand": "pnpm dev",
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "bradlc.vscode-tailwindcss"]
