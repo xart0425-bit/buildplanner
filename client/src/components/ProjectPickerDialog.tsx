@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { FolderOpen, FolderSearch, Loader2 } from "lucide-react";
 import type { ProjectRef } from "@shared/attachments";
+import { useT } from "@/lib/i18n";
 
 interface ProjectPickerDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function ProjectPickerDialog({
   onPick,
   attachedPaths,
 }: ProjectPickerDialogProps) {
+  const t = useT();
   const [pathInput, setPathInput] = useState("");
 
   useEffect(() => {
@@ -40,17 +42,15 @@ export function ProjectPickerDialog({
   const scanMutation = trpc.localProjects.scan.useMutation({
     onSuccess: (project) => {
       onPick(project);
-      toast.success(
-        `${project.name} — 파일 ${project.fileCount.toLocaleString("ko-KR")}개를 참고 자료로 첨부했습니다.`
-      );
+      toast.success(t.projectPicker.attached(project.name, project.fileCount.toLocaleString("en-US")));
       onOpenChange(false);
     },
-    onError: (err) => toast.error(`폴더를 읽지 못했습니다: ${err.message}`),
+    onError: (err) => toast.error(t.projectPicker.scanFailed(err.message)),
   });
 
   const attach = (folderPath: string) => {
     if (attachedPaths.includes(folderPath)) {
-      toast.info("이미 첨부된 폴더입니다.");
+      toast.info(t.projectPicker.alreadyAttached);
       return;
     }
     scanMutation.mutate({ path: folderPath });
@@ -79,12 +79,12 @@ export function ProjectPickerDialog({
               <FolderOpen className="w-4 h-4 text-[oklch(0.80_0.16_75)]" />
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
-              참고할 프로젝트 폴더 선택
+              {t.projectPicker.title}
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            로컬 디스크의 기존 프로젝트를 지정하면 디렉터리 구조·의존성·README를 읽어
-            <strong className="text-foreground"> 그 코드베이스를 이어받는 계획</strong>을 세웁니다.
+            {t.projectPicker.description1}{" "}
+            <strong className="text-foreground">{t.projectPicker.description2}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -98,17 +98,17 @@ export function ProjectPickerDialog({
           {pickFolderMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              폴더 선택 창에서 고르는 중...
+              {t.projectPicker.browsing}
             </>
           ) : scanMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              폴더 읽는 중...
+              {t.projectPicker.scanning}
             </>
           ) : (
             <>
               <FolderSearch className="w-4 h-4" />
-              폴더 찾기
+              {t.projectPicker.browse}
             </>
           )}
         </button>
@@ -117,16 +117,16 @@ export function ProjectPickerDialog({
 
         {pickFolderMutation.isPending && (
           <p className="-mt-3 text-[11px] text-muted-foreground/70 text-center leading-relaxed">
-            폴더 선택 창이 열렸습니다. 보이지 않으면 작업 표시줄의
-            <span className="text-foreground"> BuildPlanner — 폴더 선택 </span>
-            을 클릭하세요.
+            {t.projectPicker.taskbarHint1}
+            <span className="text-foreground"> BuildPlanner </span>
+            {t.projectPicker.taskbarHint2}
           </p>
         )}
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border/40" />
           <span className="text-[11px] text-muted-foreground/60">
-            {canBrowse ? "또는 경로 직접 입력" : "폴더 경로 입력"}
+            {canBrowse ? t.projectPicker.orTypePath : t.projectPicker.typePathOnly}
           </span>
           <div className="h-px flex-1 bg-border/40" />
         </div>
@@ -151,7 +151,7 @@ export function ProjectPickerDialog({
             disabled={isBusy || !pathInput.trim()}
             className="px-4 py-2.5 rounded-xl text-sm bg-accent/50 hover:bg-accent border border-border/50 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            추가
+            {t.projectPicker.add}
           </button>
         </form>
 
@@ -161,7 +161,7 @@ export function ProjectPickerDialog({
             onClick={() => onOpenChange(false)}
             className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
-            닫기
+            {t.projectPicker.close}
           </button>
         </DialogFooter>
       </DialogContent>

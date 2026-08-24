@@ -33,6 +33,7 @@ import {
 } from "@shared/attachments";
 import { ProjectPickerDialog } from "@/components/ProjectPickerDialog";
 import { trpc } from "@/lib/trpc";
+import { useT } from "@/lib/i18n";
 
 /** Base64 inflates by ~4/3, so cap the raw file well under the transport limit. */
 const MAX_IMAGE_BYTES = Math.floor(MAX_IMAGE_DATA_URL_CHARS * 0.7);
@@ -59,7 +60,7 @@ const readAsText = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("파일을 읽지 못했습니다."));
+    reader.onerror = () => reject(reader.error ?? new Error("unreadable"));
     reader.readAsText(file);
   });
 
@@ -67,7 +68,7 @@ const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("파일을 읽지 못했습니다."));
+    reader.onerror = () => reject(reader.error ?? new Error("unreadable"));
     reader.readAsDataURL(file);
   });
 
@@ -101,6 +102,7 @@ export function IdeaComposer({
   placeholder,
   maxLength,
 }: IdeaComposerProps) {
+  const t = useT();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -149,11 +151,11 @@ export function IdeaComposer({
         for (const file of files) {
           if (isImageFile(file)) {
             if (nextImages.length >= MAX_IMAGES) {
-              errors.push(`이미지는 최대 ${MAX_IMAGES}개까지 첨부할 수 있습니다.`);
+              errors.push(t.composer.imagesLimit(MAX_IMAGES));
               continue;
             }
             if (file.size > MAX_IMAGE_BYTES) {
-              errors.push(`${file.name}: 이미지가 너무 큽니다 (최대 ${formatBytes(MAX_IMAGE_BYTES)}).`);
+              errors.push(t.composer.imageTooLarge(file.name, formatBytes(MAX_IMAGE_BYTES)));
               continue;
             }
             try {
@@ -164,36 +166,34 @@ export function IdeaComposer({
                 dataUrl,
               });
             } catch {
-              errors.push(`${file.name}: 이미지를 읽지 못했습니다.`);
+              errors.push(t.composer.imageUnreadable(file.name));
             }
             continue;
           }
 
           if (isDocFile(file)) {
             if (nextDocs.length >= MAX_DOCS) {
-              errors.push(`문서는 최대 ${MAX_DOCS}개까지 첨부할 수 있습니다.`);
+              errors.push(t.composer.docsLimit(MAX_DOCS));
               continue;
             }
             try {
               const content = await readAsText(file);
               if (!content.trim()) {
-                errors.push(`${file.name}: 내용이 비어 있습니다.`);
+                errors.push(t.composer.docEmpty(file.name));
                 continue;
               }
               if (content.length > MAX_DOC_CHARS) {
-                errors.push(
-                  `${file.name}: 문서가 너무 깁니다 (최대 ${MAX_DOC_CHARS.toLocaleString("ko-KR")}자).`
-                );
+                errors.push(t.composer.docTooLong(file.name, MAX_DOC_CHARS.toLocaleString("en-US")));
                 continue;
               }
               nextDocs.push({ name: file.name, content });
             } catch {
-              errors.push(`${file.name}: 문서를 읽지 못했습니다.`);
+              errors.push(t.composer.docUnreadable(file.name));
             }
             continue;
           }
 
-          errors.push(`${file.name}: 지원하지 않는 형식입니다 (.md 또는 이미지).`);
+          errors.push(t.composer.unsupported(file.name));
         }
       } finally {
         setIsReadingFiles(false);
@@ -286,7 +286,7 @@ export function IdeaComposer({
                 <button
                   type="button"
                   onClick={() => removeProject(i)}
-                  aria-label={`${project.name} 참고 폴더 제거`}
+                  aria-label={`${project.name} — ${t.composer.removeAttachment}`}
                   className="p-0.5 rounded hover:bg-[oklch(0.80_0.16_75/0.2)] transition-colors"
                 >
                   <X className="w-3 h-3" />
@@ -323,7 +323,7 @@ export function IdeaComposer({
                 <button
                   type="button"
                   onClick={() => removeDoc(i)}
-                  aria-label={`${doc.name} 첨부 제거`}
+                  aria-label={`${doc.name} — ${t.composer.removeAttachment}`}
                   className="p-0.5 rounded hover:bg-[oklch(0.74_0.16_155/0.2)] transition-colors"
                 >
                   <X className="w-3 h-3" />
@@ -345,7 +345,7 @@ export function IdeaComposer({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  aria-label={`${img.name} 첨부 제거`}
+                  aria-label={`${img.name} — ${t.composer.removeAttachment}`}
                   className="p-0.5 rounded hover:bg-[oklch(0.78_0.14_200/0.2)] transition-colors"
                 >
                   <X className="w-3 h-3" />
@@ -365,7 +365,7 @@ export function IdeaComposer({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-accent/40 hover:bg-accent border border-border/50 hover:border-border text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Paperclip className="w-3.5 h-3.5" />
-              계획서(.md) 첨부
+              {t.composer.attachDoc}
             </button>
             <button
               type="button"
@@ -374,7 +374,7 @@ export function IdeaComposer({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-accent/40 hover:bg-accent border border-border/50 hover:border-border text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              이미지 첨부
+              {t.composer.attachImage}
             </button>
             {/* Hidden on deployments that switch local folder access off */}
             {localProjectsEnabled && (
@@ -382,11 +382,11 @@ export function IdeaComposer({
               type="button"
               onClick={() => setIsProjectPickerOpen(true)}
               disabled={isSubmitting || attachments.projects.length >= MAX_PROJECT_REFS}
-              title="로컬 디스크의 기존 프로젝트 폴더를 참고 자료로 지정"
+              title={t.composer.pickProject}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[oklch(0.80_0.16_75/0.1)] hover:bg-[oklch(0.80_0.16_75/0.18)] border border-[oklch(0.80_0.16_75/0.3)] text-[oklch(0.85_0.14_75)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <FolderOpen className="w-3.5 h-3.5" />
-              프로젝트 폴더 지정
+              {t.composer.pickProject}
               {attachments.projects.length > 0 && (
                 <span className="tabular-nums">({attachments.projects.length})</span>
               )}
@@ -395,7 +395,7 @@ export function IdeaComposer({
             {isReadingFiles && (
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                첨부 읽는 중...
+                {t.composer.reading}
               </span>
             )}
           </div>
@@ -412,12 +412,12 @@ export function IdeaComposer({
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span>시작 중...</span>
+                  <span>{t.composer.starting}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>리서치 시작</span>
+                  <span>{t.composer.start}</span>
                 </>
               )}
             </button>
@@ -427,19 +427,15 @@ export function IdeaComposer({
         {isDragging && (
           <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-[oklch(0.09_0.005_264/0.75)] pointer-events-none">
             <span className="text-sm text-[oklch(0.82_0.18_264)]">
-              여기에 놓으면 .md 문서와 이미지가 첨부됩니다
+              {t.composer.dropHere}
             </span>
           </div>
         )}
       </div>
 
       <p className="mt-2 px-1 text-[11px] text-muted-foreground/50">
-        Enter로 시작 · Shift+Enter 줄바꿈 · 파일을 끌어다 놓거나 붙여넣어도 첨부됩니다.
-        <span className="hidden sm:inline">
-          {" "}
-          .md는 개발 계획 수립에, 이미지는 인터페이스·디자인 작업에, 지정한 프로젝트 폴더는 기존 코드베이스를 이어받는 데
-          참고됩니다.
-        </span>
+        {t.composer.hint}
+        <span className="hidden sm:inline"> {t.composer.hintLong}</span>
       </p>
 
       <ProjectPickerDialog

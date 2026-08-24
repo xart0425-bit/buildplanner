@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
 import { DevKitDialog } from "@/components/DevKitDialog";
+import { useT } from "@/lib/i18n";
 
 type TabType =
   | "github"
@@ -166,6 +167,7 @@ export default function ResearchPage() {
   const [activeTab, setActiveTab] = useState<TabType>("github");
   const [isPolling, setIsPolling] = useState(true);
   const [planView, setPlanView] = useState<"preview" | "raw">("preview");
+  const t = useT();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDevKitOpen, setIsDevKitOpen] = useState(false);
   const utils = trpc.useUtils();
@@ -268,7 +270,7 @@ export default function ResearchPage() {
     a.download = `buildplanner-${research?.keyword?.replace(/\s+/g, "-")}-${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("계획서 다운로드 완료");
+    toast.success(t.research.downloadedMd);
   }, [plan?.markdownContent, research?.keyword]);
 
   const handleExportProject = useCallback(() => {
@@ -304,13 +306,13 @@ export default function ResearchPage() {
     a.download = `buildplanner-${research.keyword.replace(/\s+/g, "-")}-project.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("프로젝트 파일 저장 완료");
+    toast.success(t.research.savedProject);
   }, [research, sources, plan]);
 
   const handleCopyMarkdown = useCallback(() => {
     if (!plan?.markdownContent) return;
     navigator.clipboard.writeText(plan.markdownContent);
-    toast.success("Markdown 복사 완료");
+    toast.success(t.research.copiedMd);
   }, [plan?.markdownContent]);
 
   const githubSources = (sources ?? []).filter((s) => s.sourceType === "github");
@@ -366,7 +368,7 @@ export default function ResearchPage() {
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden md:inline">홈</span>
+            <span className="hidden md:inline">{t.nav.home}</span>
           </button>
           <div className="w-px h-4 bg-border" />
           <div className="flex-1 min-w-0">
@@ -379,11 +381,11 @@ export default function ResearchPage() {
               <span className="font-medium text-foreground truncate">
                 {isTeardown && teardown?.leapfrog.conceptName
                   ? teardown.leapfrog.conceptName
-                  : research?.keyword ?? "로딩 중..."}
+                  : research?.keyword ?? t.research.loading}
               </span>
               {isTeardown && (
                 <span className="text-xs px-2 py-0.5 rounded-full border flex-shrink-0 text-[oklch(0.72_0.18_264)] bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)] whitespace-nowrap">
-                  역설계 · {research?.targetProduct ?? research?.keyword}
+                  {t.research.teardownBadge} · {research?.targetProduct ?? research?.keyword}
                 </span>
               )}
               {research?.status && (
@@ -394,12 +396,12 @@ export default function ResearchPage() {
                     ? "text-[oklch(0.68_0.20_15)] bg-[oklch(0.68_0.20_15/0.1)] border-[oklch(0.68_0.20_15/0.3)]"
                     : "text-[oklch(0.72_0.18_264)] bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.3)]"
                 }`}>
-                  {research.status === "done" ? "완료" : research.status === "error" ? "오류" : "진행 중"}
+                  {research.status === "done" ? t.research.done : research.status === "error" ? t.research.error : t.research.running}
                 </span>
               )}
               {research?.refreshInterval && research.refreshInterval !== "none" && (
                 <span className="text-xs px-2 py-0.5 rounded-full border flex-shrink-0 text-[oklch(0.72_0.18_264)] bg-[oklch(0.72_0.18_264/0.1)] border-[oklch(0.72_0.18_264/0.35)] font-medium">
-                  🔄 {research.refreshInterval === "daily" ? "매일 자동 갱신 중" : "매주 자동 갱신 중"}
+                  {research.refreshInterval === "daily" ? t.research.autoDaily : t.research.autoWeekly}
                 </span>
               )}
             </div>
@@ -409,14 +411,14 @@ export default function ResearchPage() {
               onClick={handleReRun}
               disabled={reRunMutation.isPending}
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[oklch(0.72_0.18_264/0.12)] hover:bg-[oklch(0.72_0.18_264/0.2)] border border-[oklch(0.72_0.18_264/0.2)] text-[oklch(0.82_0.18_264)] transition-all mr-2 disabled:opacity-50"
-              title="리서치 실시간 업데이트 및 수집 시작"
+              title={t.research.rerun}
             >
               {reRunMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Sparkles className="w-3.5 h-3.5" />
               )}
-              <span>리서치 업데이트/시작</span>
+              <span>{t.research.rerun}</span>
             </button>
           )}
           {research?.status === "done" && (
@@ -427,53 +429,53 @@ export default function ResearchPage() {
                 disabled={isTogglingCron}
                 className="bg-[oklch(0.16_0.01_264)] text-foreground text-xs rounded-lg border border-border/30 px-2.5 py-1.5 outline-none focus:border-[oklch(0.72_0.18_264/0.5)] transition-all cursor-pointer"
               >
-                <option value="none">⏱️ 수동 (모니터링 꺼짐)</option>
-                <option value="daily">🔄 매일 자동 갱신</option>
-                <option value="weekly">🔄 매주 자동 갱신</option>
+                <option value="none">{t.research.refreshManual}</option>
+                <option value="daily">{t.research.refreshDaily}</option>
+                <option value="weekly">{t.research.refreshWeekly}</option>
               </select>
             </div>
           )}
           {research?.status === "done" && (
             <button
               onClick={() => setIsDevKitOpen(true)}
-              title="개발 킷 (.zip) 만들기"
-              aria-label="개발 킷 (.zip) 만들기"
+              title={t.research.devKit}
+              aria-label={t.research.devKit}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[oklch(0.74_0.16_155/0.14)] hover:bg-[oklch(0.74_0.16_155/0.24)] border border-[oklch(0.74_0.16_155/0.35)] text-[oklch(0.74_0.16_155)] transition-all mr-2 flex-shrink-0"
             >
               <Package className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden xl:inline whitespace-nowrap">개발 킷 (.zip)</span>
+              <span className="hidden xl:inline whitespace-nowrap">{t.research.devKit}</span>
             </button>
           )}
           {research?.status === "done" && plan?.markdownContent && (
             <button
               onClick={handleDownload}
-              title=".md 다운로드"
-              aria-label=".md 다운로드"
+              title={t.research.downloadMd}
+              aria-label={t.research.downloadMd}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[oklch(0.74_0.16_155/0.1)] hover:bg-[oklch(0.74_0.16_155/0.2)] border border-[oklch(0.74_0.16_155/0.3)] text-[oklch(0.74_0.16_155)] transition-all mr-2 flex-shrink-0"
             >
               <Download className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden xl:inline whitespace-nowrap">.md 다운로드</span>
+              <span className="hidden xl:inline whitespace-nowrap">{t.research.downloadMd}</span>
             </button>
           )}
           {research?.status === "done" && (
             <button
               onClick={handleExportProject}
-              title="프로젝트 저장 (.json)"
-              aria-label="프로젝트 저장 (.json)"
+              title={t.research.saveProject}
+              aria-label={t.research.saveProject}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[oklch(0.72_0.18_264/0.12)] hover:bg-[oklch(0.72_0.18_264/0.2)] border border-[oklch(0.72_0.18_264/0.25)] text-[oklch(0.82_0.18_264)] transition-all mr-2 flex-shrink-0"
             >
               <Save className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden xl:inline whitespace-nowrap">프로젝트 저장</span>
+              <span className="hidden xl:inline whitespace-nowrap">{t.research.saveProject}</span>
             </button>
           )}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            title="설정"
-            aria-label="설정"
+            title={t.nav.settings}
+            aria-label={t.nav.settings}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
           >
             <Settings className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden xl:inline whitespace-nowrap">설정</span>
+            <span className="hidden xl:inline whitespace-nowrap">{t.nav.settings}</span>
           </button>
         </div>
       </header>
@@ -483,10 +485,10 @@ export default function ResearchPage() {
         {research?.status !== "done" && research?.status !== "error" && (
           <div className="mb-8 glass rounded-2xl p-6 border border-border/30 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-foreground">리서치 진행 중</h2>
+              <h2 className="font-semibold text-foreground">{t.research.inProgress}</h2>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin text-[oklch(0.72_0.18_264)]" />
-                <span>자동으로 업데이트됩니다</span>
+                <span>{t.research.autoUpdates}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">

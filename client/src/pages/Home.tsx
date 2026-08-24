@@ -27,6 +27,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { MatrixRain } from "@/components/MatrixRain";
 import { EMPTY_ATTACHMENTS, IdeaComposer } from "@/components/IdeaComposer";
 import { isEmptyAttachments, type IdeaAttachments } from "@shared/attachments";
+import { useT } from "@/lib/i18n";
 
 type ResearchMode = "keyword" | "teardown";
 
@@ -61,6 +62,7 @@ const SOURCE_ICONS = [
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
+  const t = useT();
   const [mode, setMode] = useState<ResearchMode>("keyword");
   const [keyword, setKeyword] = useState("");
   const [attachments, setAttachments] = useState<IdeaAttachments>(EMPTY_ATTACHMENTS);
@@ -76,11 +78,11 @@ export default function Home() {
 
   const importMutation = trpc.research.import.useMutation({
     onSuccess: (data) => {
-      toast.success("프로젝트를 성공적으로 불러왔습니다.");
+      toast.success(t.toasts.imported);
       navigate(`/research/${data.researchId}`);
     },
     onError: (err) => {
-      toast.error("프로젝트 불러오기 실패: " + err.message);
+      toast.error(t.toasts.importFailed(err.message));
       setIsImporting(false);
     },
   });
@@ -99,15 +101,15 @@ export default function Home() {
       try {
         const text = event.target?.result;
         if (typeof text !== "string") {
-          throw new Error("올바르지 않은 파일 형식입니다.");
+          throw new Error(t.toasts.badFile);
         }
         const json = JSON.parse(text);
         if (!json.research || !json.research.keyword || !json.research.status) {
-          throw new Error("유효하지 않은 프로젝트 구조입니다.");
+          throw new Error(t.toasts.badProject);
         }
         await importMutation.mutateAsync(json);
       } catch (err: any) {
-        toast.error("불러오기 실패: " + (err.message || "파일을 분석할 수 없습니다."));
+        toast.error(t.toasts.importFailed(err.message || t.toasts.unreadable));
         setIsImporting(false);
       }
     };
@@ -120,7 +122,7 @@ export default function Home() {
       navigate(`/research/${data.researchId}`);
     },
     onError: (err) => {
-      toast.error("리서치 시작 실패: " + err.message);
+      toast.error(t.toasts.startFailed(err.message));
       setIsStarting(false);
     },
   });
@@ -130,7 +132,7 @@ export default function Home() {
       navigate(`/research/${data.researchId}`);
     },
     onError: (err) => {
-      toast.error("역설계 시작 실패: " + err.message);
+      toast.error(t.toasts.teardownFailed(err.message));
       setIsStarting(false);
     },
   });
@@ -218,20 +220,20 @@ export default function Home() {
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              title="설정"
-              aria-label="설정"
+              title={t.nav.settings}
+              aria-label={t.nav.settings}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden lg:inline whitespace-nowrap">설정</span>
+              <span className="hidden lg:inline whitespace-nowrap">{t.nav.settings}</span>
             </button>
             {isAuthenticated ? (
               <>
                 <button
                   onClick={handleImportClick}
                   disabled={isImporting}
-                  title="불러오기"
-                  aria-label="불러오기"
+                  title={t.nav.import}
+                  aria-label={t.nav.import}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
                 >
                   {isImporting ? (
@@ -239,25 +241,25 @@ export default function Home() {
                   ) : (
                     <FileText className="w-4 h-4 flex-shrink-0" />
                   )}
-                  <span className="hidden lg:inline whitespace-nowrap">불러오기</span>
+                  <span className="hidden lg:inline whitespace-nowrap">{t.nav.import}</span>
                 </button>
                 <button
                   onClick={() => navigate("/dashboard")}
-                  title="대시보드"
-                  aria-label="대시보드"
+                  title={t.nav.dashboard}
+                  aria-label={t.nav.dashboard}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
                 >
                   <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden lg:inline whitespace-nowrap">대시보드</span>
+                  <span className="hidden lg:inline whitespace-nowrap">{t.nav.dashboard}</span>
                 </button>
                 <button
                   onClick={() => navigate("/history")}
-                  title="히스토리"
-                  aria-label="히스토리"
+                  title={t.nav.history}
+                  aria-label={t.nav.history}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
                 >
                   <History className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden lg:inline whitespace-nowrap">히스토리</span>
+                  <span className="hidden lg:inline whitespace-nowrap">{t.nav.history}</span>
                 </button>
                 <div
                   className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-accent/50 border border-border/50 flex-shrink-0"
@@ -274,12 +276,12 @@ export default function Home() {
             ) : (
               <a
                 href={getLoginUrl()}
-                title="로그인"
-                aria-label="로그인"
+                title={t.nav.login}
+                aria-label={t.nav.login}
                 className="flex items-center gap-1.5 text-sm px-3 sm:px-4 py-2 rounded-lg bg-[oklch(0.72_0.18_264/0.12)] hover:bg-[oklch(0.72_0.18_264/0.2)] border border-[oklch(0.72_0.18_264/0.25)] text-[oklch(0.82_0.18_264)] transition-all flex-shrink-0"
               >
                 <LogIn className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden lg:inline whitespace-nowrap">로그인</span>
+                <span className="hidden lg:inline whitespace-nowrap">{t.nav.login}</span>
               </a>
             )}
           </div>
@@ -293,9 +295,7 @@ export default function Home() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-[oklch(0.72_0.18_264/0.2)] text-xs text-[oklch(0.72_0.18_264)] mb-8 animate-fade-in">
             <Zap className="w-3 h-3" />
             <span>
-              {mode === "keyword"
-                ? "멀티소스 AI 리서치 · 계획서 자동 생성"
-                : "원리 추출 · 균열 분석 · 상위 개념 재설계"}
+              {mode === "keyword" ? t.home.badgeKeyword : t.home.badgeTeardown}
             </span>
           </div>
 
@@ -307,22 +307,26 @@ export default function Home() {
               aria-hidden="true"
             />
             <h1 className="relative text-5xl sm:text-7xl lg:text-[5.5rem] font-bold tracking-tight hero-glow-text animate-fade-in-up">
-              {mode === "keyword" ? "Enter your idea." : "Take it apart."}
+              {mode === "keyword" ? t.home.heroKeyword : t.home.heroTeardown}
             </h1>
           </div>
 
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed animate-fade-in-up delay-100">
             {mode === "keyword" ? (
               <>
-                키워드 하나로 GitHub, Hugging Face, Papers with Code, Hacker News를 동시에 탐색하고
+                {t.home.subtitleKeyword1}
                 <br className="hidden sm:block" />
-                AI가 분석한 앱 개발 계획서를 즉시 생성합니다.
+                {t.home.subtitleKeyword2}
               </>
             ) : (
               <>
-                기존 제품의 공개 정보에서 <strong className="text-foreground font-semibold">작동 원리</strong>를 추출하고,
+                {t.home.subtitleTeardown1}{" "}
+                <strong className="text-foreground font-semibold">{t.home.subtitleTeardownStrong1}</strong>
+                {t.home.subtitleTeardown2}
                 <br className="hidden sm:block" />
-                <strong className="text-foreground font-semibold">개선 가능성</strong>을 찾아 더 나은 아이디어를 적용한 새로운 제품을 개발합니다.
+                {t.home.subtitleTeardown3}{" "}
+                <strong className="text-foreground font-semibold">{t.home.subtitleTeardownStrong2}</strong>
+                {t.home.subtitleTeardown4}
               </>
             )}
           </p>
@@ -330,8 +334,8 @@ export default function Home() {
           {/* Mode switch */}
           <div className="inline-flex gap-1 p-1 rounded-2xl glass border border-border/50 mb-8 animate-fade-in-up delay-100">
             {([
-              { key: "keyword" as ResearchMode, label: "키워드 리서치", icon: <Search className="w-3.5 h-3.5" /> },
-              { key: "teardown" as ResearchMode, label: "역설계", icon: <Crosshair className="w-3.5 h-3.5" /> },
+              { key: "keyword" as ResearchMode, label: t.home.modeKeyword, icon: <Search className="w-3.5 h-3.5" /> },
+              { key: "teardown" as ResearchMode, label: t.home.modeTeardown, icon: <Crosshair className="w-3.5 h-3.5" /> },
             ]).map((m) => (
               <button
                 key={m.key}
@@ -365,7 +369,7 @@ export default function Home() {
                   onAttachmentsChange={setAttachments}
                   onSubmit={submitResearch}
                   isSubmitting={isStarting}
-                  placeholder={`${EXAMPLE_KEYWORDS[placeholderIdx]}\n\n만들고 싶은 앱의 기능·사용자·제약을 자유롭게 적어보세요. 기존 계획서(.md)나 참고 화면 이미지를 첨부하면 그대로 반영됩니다.`}
+                  placeholder={`${EXAMPLE_KEYWORDS[placeholderIdx]}\n\n${t.composer.placeholderSuffix}`}
                   maxLength={MAX_IDEA_LENGTH}
                 />
               ) : (
@@ -377,7 +381,7 @@ export default function Home() {
                       type="text"
                       value={targetProduct}
                       onChange={(e) => setTargetProduct(e.target.value)}
-                      placeholder="분석할 제품명 (예: Notion)"
+                      placeholder={t.home.productPlaceholder}
                       className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/50 text-base outline-none py-3 min-w-0 font-mono"
                       disabled={isStarting}
                       maxLength={200}
@@ -390,7 +394,7 @@ export default function Home() {
                       type="text"
                       value={targetUrl}
                       onChange={(e) => setTargetUrl(e.target.value)}
-                      placeholder="공식 URL (선택 · 입력 시 원리 추출 정확도가 크게 올라갑니다)"
+                      placeholder={t.home.urlPlaceholder}
                       className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/50 text-sm outline-none py-3 min-w-0 font-mono"
                       disabled={isStarting}
                       maxLength={500}
@@ -405,12 +409,12 @@ export default function Home() {
                     {isStarting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        <span>역설계 시작 중...</span>
+                        <span>{t.home.startingTeardown}</span>
                       </>
                     ) : (
                       <>
                         <Crosshair className="w-4 h-4" />
-                        <span>역설계 시작</span>
+                        <span>{t.home.startTeardown}</span>
                       </>
                     )}
                   </button>
@@ -421,7 +425,7 @@ export default function Home() {
 
           {/* Examples */}
           <div className="mt-6 flex flex-wrap justify-center gap-2 animate-fade-in-up delay-300">
-            <span className="text-xs text-muted-foreground/60 self-center">예시:</span>
+            <span className="text-xs text-muted-foreground/60 self-center">{t.home.examples}</span>
             {mode === "keyword"
               ? EXAMPLE_KEYWORDS.slice(0, 5).map((kw) => (
                   <button
@@ -449,14 +453,16 @@ export default function Home() {
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-[oklch(0.74_0.16_155)] flex-shrink-0 mt-0.5" />
                 <div className="text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                  <p className="text-foreground font-semibold text-sm">복제가 아니라 재설계입니다</p>
+                  <p className="text-foreground font-semibold text-sm">{t.home.teardownRulesTitle}</p>
                   <p>
-                    공개된 정보(공식 페이지, 문서, 커뮤니티 반응, 오픈소스)만 분석하며 robots.txt를 준수합니다.
-                    소스코드나 UI 에셋을 복제하지 않고, 원본의 <strong className="text-foreground">작동 원리</strong>만 추출합니다.
+                    {t.home.teardownRules1}{" "}
+                    <strong className="text-foreground">{t.home.teardownRulesStrong1}</strong>{" "}
+                    {t.home.teardownRules1End}
                   </p>
                   <p>
-                    마지막 단계에서 결과물이 원본을 얼마나 따라갔는지 <strong className="text-foreground">차별화 점수</strong>로 자체 감사하고,
-                    기준 미달이면 다른 경로로 재설계합니다.
+                    {t.home.teardownRules2}{" "}
+                    <strong className="text-foreground">{t.home.teardownRulesStrong2}</strong>{" "}
+                    {t.home.teardownRules2End}
                   </p>
                 </div>
               </div>
@@ -466,7 +472,7 @@ export default function Home() {
 
         {/* Source badges */}
         <div className="max-w-2xl mx-auto mt-20 animate-fade-in-up delay-400">
-          <p className="text-center text-xs text-muted-foreground/50 mb-4 uppercase tracking-widest">수집 소스</p>
+          <p className="text-center text-xs text-muted-foreground/50 mb-4 uppercase tracking-widest">{t.home.sourcesLabel}</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {SOURCE_ICONS.map((src) => (
               <div
@@ -487,22 +493,22 @@ export default function Home() {
               ? [
                   {
                     icon: <Search className="w-5 h-5" />,
-                    title: "멀티소스 수집",
-                    desc: "4개 플랫폼에서 병렬로 관련 저장소, 모델, 논문, 토론을 수집하고 점수화합니다.",
+                    title: t.home.featureCollectTitle,
+                    desc: t.home.featureCollectDesc,
                     color: "text-[oklch(0.72_0.18_264)]",
                     bg: "bg-[oklch(0.72_0.18_264/0.08)]",
                   },
                   {
                     icon: <Brain className="w-5 h-5" />,
-                    title: "LLM 심층 분석",
-                    desc: "수집된 데이터를 AI가 분석하여 핵심 기술, 구현 난이도, 라이선스 이슈를 파악합니다.",
+                    title: t.home.featureAnalyseTitle,
+                    desc: t.home.featureAnalyseDesc,
                     color: "text-[oklch(0.78_0.14_200)]",
                     bg: "bg-[oklch(0.78_0.14_200/0.08)]",
                   },
                   {
                     icon: <FileText className="w-5 h-5" />,
-                    title: "계획서 자동 생성",
-                    desc: "10개 섹션으로 구성된 완전한 앱 개발 계획서를 Markdown으로 즉시 다운로드합니다.",
+                    title: t.home.featurePlanTitle,
+                    desc: t.home.featurePlanDesc,
                     color: "text-[oklch(0.74_0.16_155)]",
                     bg: "bg-[oklch(0.74_0.16_155/0.08)]",
                   },
@@ -510,22 +516,22 @@ export default function Home() {
               : [
                   {
                     icon: <Layers className="w-5 h-5" />,
-                    title: "1. 원리 추출",
-                    desc: "기능 목록이 아니라 '왜 이 구조여야 작동하는가'를 메커니즘 단위로 분해합니다.",
+                    title: t.home.featurePrinciplesTitle,
+                    desc: t.home.featurePrinciplesDesc,
                     color: "text-[oklch(0.72_0.18_264)]",
                     bg: "bg-[oklch(0.72_0.18_264/0.08)]",
                   },
                   {
                     icon: <Crosshair className="w-5 h-5" />,
-                    title: "2. 균열 발견",
-                    desc: "원본이 설계 당시 감수한 타협과, 지금 기술로는 더 이상 감수할 필요 없는 제약을 찾습니다.",
+                    title: t.home.featureGapsTitle,
+                    desc: t.home.featureGapsDesc,
                     color: "text-[oklch(0.68_0.20_15)]",
                     bg: "bg-[oklch(0.68_0.20_15/0.08)]",
                   },
                   {
                     icon: <Sparkles className="w-5 h-5" />,
-                    title: "3. 도약 설계",
-                    desc: "원본의 구현 경로를 금지한 채 같은 문제를 다시 풉니다. 차별화 점수로 자체 감사합니다.",
+                    title: t.home.featureLeapTitle,
+                    desc: t.home.featureLeapDesc,
                     color: "text-[oklch(0.74_0.16_155)]",
                     bg: "bg-[oklch(0.74_0.16_155/0.08)]",
                   },
@@ -553,7 +559,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
             >
               <History className="w-4 h-4" />
-              과거 리서치 히스토리 보기
+              {t.home.historyCta}
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -563,7 +569,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 border-t border-border/30 py-6 mt-8">
         <div className="container flex items-center justify-between text-xs text-muted-foreground/40">
-          <span>BuildPlanner · 오픈소스 리서치 기반 앱 기획서 자동 생성기</span>
+          <span>{t.home.footerTagline}</span>
           <div className="flex items-center gap-1">
             <Github className="w-3 h-3" />
             <span>GitHub · HF · Papers · HN</span>

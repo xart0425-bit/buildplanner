@@ -18,6 +18,7 @@ import {
   normalizeLanguage,
   type AnalysisLanguage,
 } from "@shared/languages";
+import { getLanguage, setLanguage as persistLanguage, useT } from "@/lib/i18n";
 
 interface SettingsModalProps {
   open: boolean;
@@ -25,6 +26,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
+  const t = useT();
   const [geminiKey, setGeminiKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
@@ -40,7 +42,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       setOpenaiKey(localStorage.getItem("buildplanner-openai-key") || "");
       setAnthropicKey(localStorage.getItem("buildplanner-anthropic-key") || "");
       setCustomModel(localStorage.getItem("buildplanner-custom-model") || "");
-      setLanguage(normalizeLanguage(localStorage.getItem("buildplanner-analysis-language")));
+      setLanguage(getLanguage());
     }
   }, [open]);
 
@@ -49,8 +51,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     localStorage.setItem("buildplanner-openai-key", openaiKey.trim());
     localStorage.setItem("buildplanner-anthropic-key", anthropicKey.trim());
     localStorage.setItem("buildplanner-custom-model", customModel.trim());
-    localStorage.setItem("buildplanner-analysis-language", language);
-    toast.success("설정이 안전하게 저장되었습니다.");
+    // Goes through the store so every open screen re-renders in the new language.
+    persistLanguage(language);
+    toast.success(t.settings.saved);
     onOpenChange(false);
   };
 
@@ -64,8 +67,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     localStorage.removeItem("buildplanner-openai-key");
     localStorage.removeItem("buildplanner-anthropic-key");
     localStorage.removeItem("buildplanner-custom-model");
-    localStorage.removeItem("buildplanner-analysis-language");
-    toast.success("설정이 초기화되었습니다.");
+    persistLanguage(DEFAULT_ANALYSIS_LANGUAGE);
+    toast.success(t.settings.cleared);
     onOpenChange(false);
   };
 
@@ -78,11 +81,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               <Settings className="w-4 h-4 text-[oklch(0.82_0.18_264)]" />
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
-              API 키 설정
+              {t.settings.title}
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            리서치와 분석 단계에서 활용할 API 키를 입력하세요. 입력된 API 키는 브라우저의 안전한 로컬 저장소(LocalStorage)에만 보관됩니다.
+            {t.settings.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -91,13 +94,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-2">
             <Label htmlFor="gemini-key" className="text-xs font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-[oklch(0.82_0.18_264)]" />
-              Google Gemini API Key
+              {t.settings.geminiLabel}
             </Label>
             <div className="relative">
               <Input
                 id="gemini-key"
                 type={showGemini ? "text" : "password"}
-                placeholder="AI Studio에서 발급받은 API 키를 입력하세요"
+                placeholder={t.settings.geminiPlaceholder}
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 className="bg-accent/40 border-border/50 focus:border-[oklch(0.72_0.18_264/0.5)] pr-10 rounded-xl"
@@ -116,13 +119,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-2">
             <Label htmlFor="openai-key" className="text-xs font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-[oklch(0.78_0.14_200)]" />
-              OpenAI API Key
+              {t.settings.openaiLabel}
             </Label>
             <div className="relative">
               <Input
                 id="openai-key"
                 type={showOpenai ? "text" : "password"}
-                placeholder="OpenAI Platform에서 발급받은 API 키를 입력하세요"
+                placeholder={t.settings.openaiPlaceholder}
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 className="bg-accent/40 border-border/50 focus:border-[oklch(0.78_0.14_200/0.5)] pr-10 rounded-xl"
@@ -141,13 +144,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-2">
             <Label htmlFor="anthropic-key" className="text-xs font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-[oklch(0.80_0.16_75)]" />
-              Anthropic Claude API Key
+              {t.settings.anthropicLabel}
             </Label>
             <div className="relative">
               <Input
                 id="anthropic-key"
                 type={showAnthropic ? "text" : "password"}
-                placeholder="Anthropic Console에서 발급받은 API 키를 입력하세요"
+                placeholder={t.settings.anthropicPlaceholder}
                 value={anthropicKey}
                 onChange={(e) => setAnthropicKey(e.target.value)}
                 className="bg-accent/40 border-border/50 focus:border-[oklch(0.80_0.16_75/0.5)] pr-10 rounded-xl"
@@ -166,7 +169,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-2">
             <Label htmlFor="analysis-language" className="text-xs font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-[oklch(0.74_0.16_155)]" />
-              분석 언어
+              {t.settings.languageLabel}
             </Label>
             <select
               id="analysis-language"
@@ -181,26 +184,24 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               ))}
             </select>
             <p className="text-[10px] text-muted-foreground/80">
-              AI가 계획서·스펙·역설계 보고서를 작성할 언어입니다. 앱 화면 언어는 바뀌지 않습니다.
+              {t.settings.languageHelp}
             </p>
           </div>
 
           {/* Custom Model */}
           <div className="space-y-2">
             <Label htmlFor="custom-model" className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-              모델 명 설정 (선택 사항)
+              {t.settings.modelLabel}
             </Label>
             <Input
               id="custom-model"
               type="text"
-              placeholder="예: claude-opus-5, gemini-2.5-flash, gpt-4o-mini"
+              placeholder={t.settings.modelPlaceholder}
               value={customModel}
               onChange={(e) => setCustomModel(e.target.value)}
               className="bg-accent/40 border-border/50 rounded-xl font-mono text-xs"
             />
-            <p className="text-[10px] text-muted-foreground/80">
-              비워둘 경우 API 키 유형에 맞춰 기본 모델(Claude: <code className="font-mono bg-accent px-1 rounded">claude-opus-5</code>, Gemini: <code className="font-mono bg-accent px-1 rounded">gemini-2.5-flash</code>, OpenAI: <code className="font-mono bg-accent px-1 rounded">gpt-4o-mini</code>)로 자동 지정됩니다. 여러 키를 넣으면 Claude → Gemini → OpenAI 순으로 사용합니다.
-            </p>
+            <p className="text-[10px] text-muted-foreground/80">{t.settings.modelHelp}</p>
           </div>
         </div>
 
@@ -211,14 +212,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             onClick={handleClear}
             className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl text-xs flex-1 sm:flex-initial"
           >
-            초기화
+            {t.settings.reset}
           </Button>
           <Button
             type="button"
             onClick={handleSave}
             className="bg-[oklch(0.72_0.18_264)] hover:bg-[oklch(0.78_0.18_264)] text-[oklch(0.09_0.005_264)] font-semibold rounded-xl flex-1 sm:flex-initial"
           >
-            저장하기
+            {t.settings.save}
           </Button>
         </DialogFooter>
       </DialogContent>

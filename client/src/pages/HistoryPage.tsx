@@ -18,6 +18,7 @@ import {
   Crosshair,
 } from "lucide-react";
 import { SettingsModal } from "@/components/SettingsModal";
+import { useT } from "@/lib/i18n";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
@@ -31,6 +32,7 @@ const STATUS_CONFIG = {
 
 export default function HistoryPage() {
   const { isAuthenticated } = useAuth();
+  const t = useT();
   const [, navigate] = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -103,22 +105,22 @@ export default function HistoryPage() {
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden md:inline">홈</span>
+              <span className="hidden md:inline">{t.nav.home}</span>
             </button>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2 min-w-0">
               <History className="w-4 h-4 text-[oklch(0.72_0.18_264)] flex-shrink-0" />
-              <span className="font-medium text-foreground truncate">리서치 히스토리</span>
+              <span className="font-medium text-foreground truncate">{t.history.title}</span>
             </div>
           </div>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            title="설정"
-            aria-label="설정"
+            title={t.nav.settings}
+            aria-label={t.nav.settings}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-md hover:bg-accent flex-shrink-0"
           >
             <Settings className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden lg:inline whitespace-nowrap">설정</span>
+            <span className="hidden lg:inline whitespace-nowrap">{t.nav.settings}</span>
           </button>
         </div>
       </header>

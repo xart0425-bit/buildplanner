@@ -10,18 +10,12 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Bot, FolderTree, Loader2, Package, Repeat, Sparkles, Terminal } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 /** Mirrors TARGET_AGENTS in server/scaffold.ts. */
 type TargetAgent = "auto" | "claude" | "codex" | "gemini" | "cursor" | "generic";
 
-const AGENT_OPTIONS: Array<{ id: TargetAgent; label: string; memoryFile: string; hint: string }> = [
-  { id: "auto", label: "자동 감지", memoryFile: "설정된 모델 기준", hint: "설정한 API 키/모델에 맞춰 자동 선택" },
-  { id: "claude", label: "Claude Code", memoryFile: "CLAUDE.md", hint: ".claude/commands · evaluator 서브에이전트" },
-  { id: "codex", label: "OpenAI Codex", memoryFile: "AGENTS.md", hint: "prompts/ 루프 프롬프트" },
-  { id: "gemini", label: "Gemini CLI", memoryFile: "GEMINI.md", hint: ".gemini/commands/loop.toml" },
-  { id: "cursor", label: "Cursor", memoryFile: "AGENTS.md", hint: ".cursor/rules/*.mdc" },
-  { id: "generic", label: "범용", memoryFile: "AGENTS.md", hint: "CLI 무관 기본 구조" },
-];
+type AgentOption = { id: TargetAgent; label: string; memoryFile: string; hint: string };
 
 const formatBytes = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)}MB` : `${Math.round(bytes / 1024)}KB`;
@@ -38,6 +32,15 @@ interface DevKitDialogProps {
  * here rather than guessed at download time.
  */
 export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogProps) {
+  const t = useT();
+  const agentOptions: AgentOption[] = [
+    { id: "auto", label: t.devKit.agentAuto, memoryFile: t.devKit.agentAutoFile, hint: t.devKit.agentAutoHint },
+    { id: "claude", label: "Claude Code", memoryFile: "CLAUDE.md", hint: t.devKit.agentClaudeHint },
+    { id: "codex", label: "OpenAI Codex", memoryFile: "AGENTS.md", hint: t.devKit.agentCodexHint },
+    { id: "gemini", label: "Gemini CLI", memoryFile: "GEMINI.md", hint: t.devKit.agentGeminiHint },
+    { id: "cursor", label: "Cursor", memoryFile: "AGENTS.md", hint: t.devKit.agentCursorHint },
+    { id: "generic", label: t.devKit.agentGenericLabel, memoryFile: "AGENTS.md", hint: t.devKit.agentGenericHint },
+  ];
   const [agent, setAgent] = useState<TargetAgent>("auto");
   const [lastResult, setLastResult] = useState<{
     fileName: string;
@@ -72,10 +75,10 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
         specCount: data.specCount,
         byteSize: data.byteSize,
       });
-      toast.success(`개발 킷 생성 완료 — ${data.fileName}`);
+      toast.success(t.devKit.downloaded(data.fileName));
     },
     onError: (err) => {
-      toast.error(`개발 킷 생성 실패: ${err.message}`);
+      toast.error(t.devKit.failed(err.message));
     },
   });
 
@@ -88,21 +91,22 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
               <Package className="w-4 h-4 text-[oklch(0.74_0.16_155)]" />
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
-              개발 킷 만들기 (.zip)
+              {t.devKit.title}
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            계획서를 <strong className="text-foreground">Spec + Loop</strong> 구조의 프로젝트 폴더로 변환합니다.
-            압축을 풀고 그 폴더를 에이전트에게 열어주면 목표·완료 조건·검증 절차를 읽고 바로 개발을 시작합니다.
+            {t.devKit.description1}{" "}
+            <strong className="text-foreground">{t.devKit.descriptionStrong}</strong>{" "}
+            {t.devKit.description2}
           </DialogDescription>
         </DialogHeader>
 
         {/* What goes in the box */}
         <div className="grid grid-cols-3 gap-2 text-[11px]">
           {[
-            { icon: <FolderTree className="w-3.5 h-3.5" />, title: "specs/", desc: "완료 조건이 붙은 스펙" },
-            { icon: <Repeat className="w-3.5 h-3.5" />, title: "loop/", desc: "GOAL · PROGRESS · RALPH" },
-            { icon: <Terminal className="w-3.5 h-3.5" />, title: "scripts/", desc: "루프 실행 스크립트" },
+            { icon: <FolderTree className="w-3.5 h-3.5" />, title: "specs/", desc: t.devKit.specsLabel },
+            { icon: <Repeat className="w-3.5 h-3.5" />, title: "loop/", desc: t.devKit.loopLabel },
+            { icon: <Terminal className="w-3.5 h-3.5" />, title: "scripts/", desc: t.devKit.scriptsLabel },
           ].map((item) => (
             <div
               key={item.title}
@@ -121,10 +125,10 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
         <div className="space-y-2">
           <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
             <Bot className="w-3.5 h-3.5 text-[oklch(0.82_0.18_264)]" />
-            사용할 코딩 에이전트
+            {t.devKit.agentLabel}
           </span>
           <div className="grid grid-cols-2 gap-2">
-            {AGENT_OPTIONS.map((opt) => (
+            {agentOptions.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
@@ -143,19 +147,19 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
             ))}
           </div>
           <p className="text-[11px] text-muted-foreground/70">
-            선택한 에이전트에 맞춰 메모리 파일 이름, 슬래시 커맨드/룰 파일, 루프 실행 명령이 자동으로 바뀝니다.
+            {t.devKit.agentNote}
           </p>
         </div>
 
         {lastResult && (
           <div className="rounded-xl border border-[oklch(0.74_0.16_155/0.3)] bg-[oklch(0.74_0.16_155/0.08)] px-4 py-3 text-xs text-muted-foreground space-y-1">
-            <p className="text-[oklch(0.80_0.14_155)] font-medium">{lastResult.fileName} 다운로드됨</p>
+            <p className="text-[oklch(0.80_0.14_155)] font-medium">{lastResult.fileName}</p>
             <p>
-              {lastResult.agentLabel} · 스펙 {lastResult.specCount}건 · 파일 {lastResult.fileCount}개 ·{" "}
-              {formatBytes(lastResult.byteSize)}
+              {lastResult.agentLabel} · {t.devKit.resultSpecs} {lastResult.specCount} · {t.devKit.resultFiles}{" "}
+              {lastResult.fileCount} · {formatBytes(lastResult.byteSize)}
             </p>
             <p className="font-mono text-[11px] text-foreground/80">
-              unzip → cd {lastResult.rootDir} → 에이전트가 {lastResult.memoryFile} 를 읽고 시작
+              {t.devKit.unzipHint(lastResult.rootDir, lastResult.memoryFile)}
             </p>
           </div>
         )}
@@ -166,7 +170,7 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
             onClick={() => onOpenChange(false)}
             className="px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
-            닫기
+            {t.devKit.close}
           </button>
           <button
             type="button"
@@ -177,12 +181,12 @@ export function DevKitDialog({ open, onOpenChange, researchId }: DevKitDialogPro
             {buildMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                스펙 생성 중...
+                {t.devKit.generating}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                {lastResult ? "다시 생성" : "생성하고 다운로드"}
+                {lastResult ? t.devKit.regenerate : t.devKit.generate}
               </>
             )}
           </button>
