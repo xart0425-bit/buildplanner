@@ -806,7 +806,7 @@ export async function runIncrementalAnalysisPipeline(
   // 8. Generate Markdown
   const markdown = renderMarkdown
     ? renderMarkdown(updatedAnalysis, mappedSources)
-    : generateMarkdown(keyword, updatedAnalysis, mappedSources, attachments);
+    : generateMarkdown(keyword, updatedAnalysis, mappedSources, attachments, apiKeys?.language);
 
   // 9. Save updated plan
   await upsertResearchPlan({

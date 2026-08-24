@@ -49,6 +49,7 @@ const baseInput: ScaffoldInput = {
   attachments: null,
   agent: "claude",
   modelLabel: "claude-opus-5",
+  language: "en",
 };
 
 // ─── ZIP writer ───────────────────────────────────────────────────────────────
@@ -202,6 +203,45 @@ describe("buildScaffoldFiles", () => {
     expect(paths).toContain("docs/attachments/spec.md");
     expect(paths).toContain("assets/references/hero-shot.png");
     expect(Buffer.isBuffer(files.find((f) => f.path.endsWith("hero-shot.png"))!.content)).toBe(true);
+  });
+
+  it("writes the whole kit in the selected language", () => {
+    const koPack = fallbackSpecPack({ ...baseInput, language: "ko" });
+    const ko = buildScaffoldFiles(koPack, { ...baseInput, language: "ko" });
+    const koRalph = String(ko.find((f) => f.path === "loop/RALPH.md")!.content);
+    const koGoal = String(ko.find((f) => f.path === "loop/GOAL.md")!.content);
+    expect(koRalph).toContain("한 번의 반복");
+    expect(koGoal).toContain("# GOAL — 무엇을, 어디까지");
+
+    // Every other language must be free of Korean *template* text. The fixture's own
+    // analysis prose is Korean, so use an all-English analysis: anything Korean that
+    // survives can only have come from a hardcoded template string.
+    const asciiInput = {
+      ...baseInput,
+      // Copied through verbatim by design, so it must not be Korean for this check.
+      planMarkdown: "# plan",
+      analysis: {
+        ...analysis,
+        summary: "A local video tool.",
+        difficultyReason: "media pipeline is tricky",
+        coreFeatures: ["upload video", "generate thumbnails"],
+        licenseNotes: ["check ffmpeg LGPL"],
+        risks: [{ risk: "encoding perf", mitigation: "split workers" }],
+        developmentPhases: [{ phase: "PoC", duration: "1w", tasks: ["verify ffmpeg"] }],
+      },
+    };
+
+    for (const language of ["en", "ja", "zh", "fr", "ru"] as const) {
+      const pack = fallbackSpecPack({ ...asciiInput, language });
+      const files = buildScaffoldFiles(pack, { ...asciiInput, language });
+      for (const file of files) {
+        if (Buffer.isBuffer(file.content)) continue;
+        expect(
+          /[가-힣]{2,}/.test(file.content),
+          `${language} kit leaked Korean into ${file.path}`
+        ).toBe(false);
+      }
+    }
   });
 
   it("names the loop script command after the selected agent CLI", () => {

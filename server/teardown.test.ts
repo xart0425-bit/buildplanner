@@ -364,7 +364,7 @@ describe("countConfirmedReviews", () => {
 describe("generateTeardownMarkdown", () => {
   it("renders every stage of the chain", () => {
     const md = generateTeardownMarkdown(teardown, analysis, []);
-    expect(md).toContain("# 역설계 기반 신규 앱 설계서: NewConcept");
+    expect(md).toContain("# Teardown-Based Product Design: NewConcept");
     expect(md).toContain("TestProduct");
     expect(md).toContain("블록 모델");
     expect(md).toContain("대용량 문서에서 느려짐");
@@ -375,14 +375,27 @@ describe("generateTeardownMarkdown", () => {
 
   it("traces each feature back to the fault line it removes", () => {
     const md = generateTeardownMarkdown(teardown, analysis, []);
-    expect(md).toContain("| 해소하는 균열 | 대용량 문서에서 느려짐 |");
-    expect(md).toContain("| 원본의 방식 | 전체 트리 렌더 |");
+    expect(md).toContain("| Fault line addressed | 대용량 문서에서 느려짐 |");
+    expect(md).toContain("| Original approach | 전체 트리 렌더 |");
+  });
+
+  it("renders the report in the requested language", () => {
+    const ko = generateTeardownMarkdown(teardown, analysis, [], "ko");
+    expect(ko).toContain("# 역설계 기반 신규 앱 설계서: NewConcept");
+    expect(ko).toContain("## 1. 원본 분석 — 작동 원리");
+    expect(ko).toContain("| 해소하는 지점 | 대용량 문서에서 느려짐 |");
+
+    const ja = generateTeardownMarkdown(teardown, analysis, [], "ja");
+    expect(ja).toContain("## 1. 原製品の分析 — 動作原理");
+
+    const ru = generateTeardownMarkdown(teardown, analysis, [], "ru");
+    expect(ru).toContain("## 1. Анализ оригинала — принципы работы");
   });
 
   it("renders without an implementation plan", () => {
     const md = generateTeardownMarkdown(teardown, null, []);
     expect(md).toContain("NewConcept");
-    expect(md).toContain("_기술 스택을 생성하지 못했습니다._");
+    expect(md).toContain("_No tech stack was produced._");
   });
 
   it("degrades gracefully when a stage produced nothing", () => {
@@ -393,9 +406,9 @@ describe("generateTeardownMarkdown", () => {
       leapfrog: { ...teardown.leapfrog, features: [], architectureShift: "", moat: "" },
     };
     const md = generateTeardownMarkdown(empty, analysis, []);
-    expect(md).toContain("_작동 원리를 추출하지 못했습니다");
-    expect(md).toContain("_균열을 발견하지 못했습니다._");
-    expect(md).toContain("_핵심 기능을 설계하지 못했습니다._");
+    expect(md).toContain("_No operating principles were extracted");
+    expect(md).toContain("_No fault lines were found._");
+    expect(md).toContain("_No core features were designed._");
   });
 
   it("flags a low divergence score as requiring rework", () => {
@@ -411,8 +424,8 @@ describe("generateTeardownMarkdown", () => {
     };
     const md = generateTeardownMarkdown(derivative, analysis, []);
     expect(md).toContain("재설계 필요");
-    expect(md).toContain("원본 의존도가 높습니다");
+    expect(md).toContain("Too dependent on the original");
     expect(md).toContain("사이드바 구조");
-    expect(md).toContain("재설계 1회 수행");
+    expect(md).toContain("redesigned once");
   });
 });

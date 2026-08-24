@@ -21,6 +21,18 @@ import {
   languageInstruction,
   type AnalysisLanguage,
 } from "@shared/languages";
+import { teardownStrings } from "./teardownStrings";
+import { planStrings } from "./planStrings";
+
+/** Only affects the generated date string in the report header. */
+const TEARDOWN_LOCALE: Record<AnalysisLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  zh: "zh-CN",
+  fr: "fr-FR",
+  ru: "ru-RU",
+};
 
 export interface TeardownPrinciple {
   name: string;
@@ -633,9 +645,12 @@ const SEVERITY_MARK: Record<FaultLine["severity"], string> = {
 export function generateTeardownMarkdown(
   teardown: TeardownResult,
   analysis: AnalysisResult | null,
-  sources: SourceItem[]
+  sources: SourceItem[],
+  language: AnalysisLanguage = DEFAULT_ANALYSIS_LANGUAGE
 ): string {
-  const now = new Date().toLocaleDateString("ko-KR", {
+  const t = teardownStrings(language);
+  const L = t.labels;
+  const now = new Date().toLocaleDateString(TEARDOWN_LOCALE[language], {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -651,173 +666,173 @@ export function generateTeardownMarkdown(
   const reviews = countConfirmedReviews(sources);
   const pageCount = sources.filter((s) => s.sourceType === "web").length;
 
-  return `# 역설계 기반 신규 앱 설계서: ${leapfrog.conceptName}
+  return `# ${t.title(leapfrog.conceptName)}
 
-> 생성일: ${now}
-> 분석 대상: **${target.product}**${target.url ? ` (${target.url})` : ""}
-> BuildPlanner 역설계 모드로 자동 생성되었습니다.
+> ${t.generatedOn}: ${now}
+> ${t.analysisTarget}: **${target.product}**${target.url ? ` (${target.url})` : ""}
+> ${t.generatedBy}
 
 ---
 
-## 0. 요약
+## 0. ${t.sections.summary}
 
 **${leapfrog.positioning || leapfrog.conceptName}**
 
-${leapfrog.thesis || "_논지를 생성하지 못했습니다._"}
+${leapfrog.thesis || t.empty.thesis}
 
-| 항목 | 값 |
+| ${t.table.item} | ${t.table.value} |
 |------|-----|
-| 원본 제품 | ${target.product} |
-| 제품 카테고리 | ${target.category} |
-| 추출된 작동 원리 | ${principles.length}개 |
-| 발견된 균열 | ${faultLines.length}개 |
-| 차별화 점수 | **${divergence.score}/100** (${divergence.verdict})${teardown.regenerated ? " · 재설계 1회 수행" : ""} |
-| 분석 자료 | 공식 페이지 ${pageCount}건, 사용자 발언 ${reviews.total}건 (제품 관련성 확인 ${reviews.confirmed}건) |
+| ${t.table.originalProduct} | ${target.product} |
+| ${t.table.category} | ${target.category} |
+| ${t.table.extractedPrinciples} | ${principles.length} |
+| ${t.table.foundFaultLines} | ${faultLines.length} |
+| ${t.table.divergenceScore} | **${divergence.score}/100** (${divergence.verdict})${teardown.regenerated ? ` · ${t.table.regenerated}` : ""} |
+| ${t.table.analysedMaterial} | ${t.table.materialSummary(pageCount, reviews.total, reviews.confirmed)} |
 
 ---
 
-## 1. 원본 분석 — 작동 원리
+## 1. ${t.sections.principles}
 
-> 기능 목록이 아니라, 이 제품이 왜 작동하는지에 대한 메커니즘 분해입니다.
+> ${t.notes.principles}
 
 ${
   principles.length > 0
     ? principles
         .map(
           (p, i) =>
-            `### ${i + 1}. ${p.name}\n\n**메커니즘**: ${p.mechanism}\n\n**작동 이유**: ${p.whyItWorks}\n\n> 근거: ${p.evidence || "명시되지 않음"}`
+            `### ${i + 1}. ${p.name}\n\n**${L.mechanism}**: ${p.mechanism}\n\n**${L.whyItWorks}**: ${p.whyItWorks}\n\n> ${L.evidence}: ${p.evidence || L.notStated}`
         )
         .join("\n\n")
-    : "_작동 원리를 추출하지 못했습니다. 공식 URL이 정확한지 확인해주세요._"
+    : t.empty.principles
 }
 
 ---
 
-## 2. 균열 분석 — 원본이 감수한 타협
+## 2. ${t.sections.faultLines}
 
-> 도약의 출발점입니다. 원본을 이기는 방법은 더 잘 만드는 것이 아니라, 원본이 피할 수 없었던 제약을 없애는 것입니다.
+> ${t.notes.faultLines}
 
 ${
   faultLines.length > 0
     ? faultLines
         .map(
           (f, i) =>
-            `### ${SEVERITY_MARK[f.severity]} ${i + 1}. ${f.title}\n\n- **유형**: ${f.category}\n- **심각도**: ${f.severity}\n- **근거**: ${f.evidence}\n- **기회**: ${f.opportunity}`
+            `### ${SEVERITY_MARK[f.severity]} ${i + 1}. ${f.title}\n\n- **${L.type}**: ${f.category}\n- **${L.severity}**: ${f.severity}\n- **${L.evidence}**: ${f.evidence}\n- **${L.opportunity}**: ${f.opportunity}`
         )
         .join("\n\n")
-    : "_균열을 발견하지 못했습니다._"
+    : t.empty.faultLines
 }
 
 ---
 
-## 3. 도약 설계 — 새 제품
+## 3. ${t.sections.leapfrog}
 
-### 개념
+### ${L.concept}
 
 **${leapfrog.conceptName}** — ${leapfrog.positioning}
 
-### 구조적 전환
+### ${L.architectureShift}
 
-${leapfrog.architectureShift || "_구조적 전환이 명시되지 않았습니다._"}
+${leapfrog.architectureShift || t.empty.architectureShift}
 
-### 핵심 기능
+### ${L.coreFeatures}
 
 ${
   leapfrog.features.length > 0
     ? leapfrog.features
         .map(
           (f, i) =>
-            `#### ${i + 1}. ${f.name}\n\n${f.description}\n\n| | |\n|---|---|\n| 해소하는 균열 | ${f.addressesFaultLine || "미지정"} |\n| 원본의 방식 | ${f.originalApproach} |\n| **우리의 방식** | **${f.newApproach}** |`
+            `#### ${i + 1}. ${f.name}\n\n${f.description}\n\n| | |\n|---|---|\n| ${L.addressesFaultLine} | ${f.addressesFaultLine || L.unspecified} |\n| ${L.originalApproach} | ${f.originalApproach} |\n| **${L.ourApproach}** | **${f.newApproach}** |`
         )
         .join("\n\n")
-    : "_핵심 기능을 설계하지 못했습니다._"
+    : t.empty.features
 }
 
-### 방어 가능성
+### ${L.moat}
 
-${leapfrog.moat || "_방어 요소가 명시되지 않았습니다._"}
+${leapfrog.moat || t.empty.moat}
 
 ---
 
-## 4. 차별화 감사
+## 4. ${t.sections.divergence}
 
-**차별화 점수: ${divergence.score}/100 — ${divergence.verdict}**
+**${L.divergenceScoreLine(divergence.score, divergence.verdict)}**
 
 ${
   divergence.score >= 80
-    ? "✅ 원본과 독립적인 설계로 판정되었습니다."
+    ? t.verdicts.independent
     : divergence.score >= DIVERGENCE_THRESHOLD
-      ? "🟡 독립성은 확보했으나 아래 항목은 개발 전 재검토를 권합니다."
-      : "🔴 원본 의존도가 높습니다. 아래 항목을 반드시 수정한 뒤 개발에 착수하세요."
+      ? t.verdicts.acceptable
+      : t.verdicts.derivative
 }
 
 ${
   divergence.overlaps.length > 0
-    ? `### 원본을 따라간 지점\n\n${divergence.overlaps.map((o) => `#### ⚠️ ${o.item}\n- 위험: ${o.risk}\n- 수정 방향: ${o.fix}`).join("\n\n")}`
-    : "### 원본을 따라간 지점\n\n_발견되지 않았습니다._"
+    ? `### ${L.followedOriginal}\n\n${divergence.overlaps.map((o) => `#### ⚠️ ${o.item}\n- ${L.risk}: ${o.risk}\n- ${L.fixDirection}: ${o.fix}`).join("\n\n")}`
+    : `### ${L.followedOriginal}\n\n${t.empty.overlaps}`
 }
 
-### 법적 확인 사항
+### ${L.legalChecks}
 
 ${
   divergence.legalNotes.length > 0
     ? divergence.legalNotes.map((n) => `- ${n}`).join("\n")
-    : "- 아이디어와 기능 개념은 저작권 보호 대상이 아니지만, 소스코드·UI 에셋·상표는 보호 대상입니다.\n- 원본의 특허 등록 여부를 개발 착수 전 확인하세요."
+    : t.empty.defaultLegalNotes
 }
 
-> ⚖️ 이 문서는 공개된 정보만을 근거로 작성된 분석입니다. 법률 자문이 아니며, 실제 제품화 전 전문가 검토를 권장합니다.
+> ${t.disclaimer}
 
 ---
 
-## 5. 구현 계획
+## 5. ${t.sections.plan}
 
 ${
   stack
-    ? `### 기술 스택\n\n| 영역 | 기술 |\n|------|------|\n| Frontend | ${stack.frontend.join(", ")} |\n| Backend | ${stack.backend.join(", ")} |\n| AI/ML | ${stack.ai.join(", ")} |\n| Database | ${stack.database.join(", ")} |\n| Deployment | ${stack.deployment.join(", ")} |`
-    : "_기술 스택을 생성하지 못했습니다._"
+    ? `### ${L.techStack}\n\n| ${L.area} | ${L.technology} |\n|------|------|\n| Frontend | ${stack.frontend.join(", ")} |\n| Backend | ${stack.backend.join(", ")} |\n| AI/ML | ${stack.ai.join(", ")} |\n| Database | ${stack.database.join(", ")} |\n| Deployment | ${stack.deployment.join(", ")} |`
+    : t.empty.stack
 }
 
 ${
   analysis?.implementationDifficulty
-    ? `\n### 구현 난이도\n\n**${analysis.implementationDifficulty}** — ${analysis.difficultyReason}`
+    ? `\n### ${L.difficulty}\n\n**${planStrings(language).difficultyLevels[analysis.implementationDifficulty] ?? analysis.implementationDifficulty}** — ${analysis.difficultyReason}`
     : ""
 }
 
 ${
   phases.length > 0
-    ? `\n### 개발 단계\n\n${phases.map((p) => `#### ${p.phase} (${p.duration})\n\n${p.tasks.map((t) => `- [ ] ${t}`).join("\n")}`).join("\n\n")}`
+    ? `\n### ${L.phases}\n\n${phases.map((p) => `#### ${p.phase} (${p.duration})\n\n${p.tasks.map((task) => `- [ ] ${task}`).join("\n")}`).join("\n\n")}`
     : ""
 }
 
 ${
   risks.length > 0
-    ? `\n### 리스크\n\n${risks.map((r) => `#### ⚠️ ${r.risk}\n- 대응: ${r.mitigation}`).join("\n\n")}`
+    ? `\n### ${L.risks}\n\n${risks.map((r) => `#### ⚠️ ${r.risk}\n- ${L.mitigation}: ${r.mitigation}`).join("\n\n")}`
     : ""
 }
 
 ---
 
-## 6. 활용 가능한 오픈소스
+## 6. ${t.sections.openSource}
 
 ${
   repos.length > 0
     ? repos
         .map(
           (s) =>
-            `### [${s.title}](${s.url})\n${s.description || "설명 없음"}\n- ⭐ ${meta(s).stars ?? 0} | 언어: ${meta(s).language ?? "N/A"} | 라이선스: ${meta(s).license ?? "N/A"}`
+            `### [${s.title}](${s.url})\n${s.description || L.noDescription}\n- ⭐ ${meta(s).stars ?? 0} | ${L.language}: ${meta(s).language ?? "N/A"} | ${L.license}: ${meta(s).license ?? "N/A"}`
         )
         .join("\n\n")
-    : "_관련 오픈소스를 찾지 못했습니다._"
+    : t.empty.repos
 }
 
 ${
   models.length > 0
-    ? `\n### 참고 AI 모델\n\n${models.map((s) => `- [${s.title}](${s.url}) — 다운로드 ${meta(s).downloads ?? 0}`).join("\n")}`
+    ? `\n### ${L.referenceModels}\n\n${models.map((s) => `- [${s.title}](${s.url}) — ${L.downloads} ${meta(s).downloads ?? 0}`).join("\n")}`
     : ""
 }
 
 ---
 
-*이 설계서는 BuildPlanner 역설계 모드로 자동 생성되었습니다. 공개 정보 기반 분석이므로 실제 개발 시 추가 검증이 필요합니다.*
+*${t.footer}*
 `;
 }

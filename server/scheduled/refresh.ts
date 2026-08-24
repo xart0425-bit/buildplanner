@@ -51,7 +51,7 @@ export async function refreshScheduledResearchHandler(req: Request, res: Respons
       oldPlan ?? null,
       { geminiKey, openaiKey, anthropicKey, customModel, language },
       isTeardown
-        ? (analysis, sources) => generateTeardownMarkdown(teardown!, analysis, sources)
+        ? (analysis, sources) => generateTeardownMarkdown(teardown!, analysis, sources, language)
         : undefined,
       parseAttachments(research.attachments)
     );

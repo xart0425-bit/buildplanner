@@ -691,6 +691,7 @@ export const appRouter = router({
             attachments: parseAttachments(research.attachments),
             agent: resolveTargetAgent(input.agent, apiKeys),
             modelLabel: describeModel(apiKeys),
+            language: apiKeys.language,
           },
           apiKeys
         );
@@ -739,7 +740,7 @@ async function runResearchPipeline(
     // 2. Analyzing
     await updateResearchStatus(researchId, "analyzing");
     const analysis = await analyzeWithLLM(keyword, sorted, apiKeys, attachments);
-    const markdown = generateMarkdown(keyword, analysis, sorted, attachments);
+    const markdown = generateMarkdown(keyword, analysis, sorted, attachments, apiKeys.language);
 
     // Save plan
     await upsertResearchPlan({
@@ -803,7 +804,7 @@ async function runTeardownPipeline(
       teardown.leapfrog.positioning ? ` — ${teardown.leapfrog.positioning}` : ""
     }`;
     const analysis = await analyzeWithLLM(planKeyword, sorted, apiKeys);
-    const markdown = generateTeardownMarkdown(teardown, analysis, sorted);
+    const markdown = generateTeardownMarkdown(teardown, analysis, sorted, apiKeys.language);
 
     await upsertResearchPlan({
       researchId,
@@ -868,8 +869,8 @@ async function runModifyPipeline(
     const teardown = plan.teardownJson as TeardownResult | null;
     const markdown =
       research.mode === "teardown" && teardown
-        ? generateTeardownMarkdown(teardown, updatedAnalysis, mappedSources)
-        : generateMarkdown(keyword, updatedAnalysis, mappedSources, parseAttachments(research.attachments));
+        ? generateTeardownMarkdown(teardown, updatedAnalysis, mappedSources, apiKeys.language)
+        : generateMarkdown(keyword, updatedAnalysis, mappedSources, parseAttachments(research.attachments), apiKeys.language);
 
     await upsertResearchPlan({
       researchId,
