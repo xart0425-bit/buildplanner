@@ -188,6 +188,7 @@ import {
   type TeardownResult,
 } from "./teardown";
 import { normalizeTargetUrl } from "./webIntel";
+import { normalizeLanguage, type AnalysisLanguage } from "@shared/languages";
 import {
   ideaAttachmentsSchema,
   isEmptyAttachments,
@@ -259,13 +260,15 @@ export const appRouter = router({
 
         const geminiKey = ctx.req.headers["x-gemini-key"] as string | undefined;
         const openaiKey = ctx.req.headers["x-openai-key"] as string | undefined;
+        const anthropicKey = ctx.req.headers["x-anthropic-key"] as string | undefined;
         const customModel = ctx.req.headers["x-custom-model"] as string | undefined;
+        const language = normalizeLanguage(ctx.req.headers["x-analysis-language"]);
 
         // Run async (fire-and-forget) — client polls for status
         runResearchPipeline(
           researchId,
           input.keyword,
-          { geminiKey, openaiKey, customModel },
+          { geminiKey, openaiKey, anthropicKey, customModel, language },
           attachments
         ).catch((err) => {
           console.error("[Research] Pipeline error:", err);
@@ -302,7 +305,9 @@ export const appRouter = router({
 
         const geminiKey = ctx.req.headers["x-gemini-key"] as string | undefined;
         const openaiKey = ctx.req.headers["x-openai-key"] as string | undefined;
+        const anthropicKey = ctx.req.headers["x-anthropic-key"] as string | undefined;
         const customModel = ctx.req.headers["x-custom-model"] as string | undefined;
+        const language = normalizeLanguage(ctx.req.headers["x-analysis-language"]);
 
         // Fire-and-forget — client polls for status, same as keyword mode
         runTeardownPipeline(researchId, product, targetUrl, {
@@ -467,7 +472,9 @@ export const appRouter = router({
 
         const geminiKey = ctx.req.headers["x-gemini-key"] as string | undefined;
         const openaiKey = ctx.req.headers["x-openai-key"] as string | undefined;
+        const anthropicKey = ctx.req.headers["x-anthropic-key"] as string | undefined;
         const customModel = ctx.req.headers["x-custom-model"] as string | undefined;
+        const language = normalizeLanguage(ctx.req.headers["x-analysis-language"]);
 
         runModifyPipeline(input.researchId, input.instruction, {
           geminiKey,
@@ -554,7 +561,9 @@ export const appRouter = router({
         const activities = await getWeeklyActivities(ctx.user.id, 7);
         const geminiKey = ctx.req.headers["x-gemini-key"] as string | undefined;
         const openaiKey = ctx.req.headers["x-openai-key"] as string | undefined;
+        const anthropicKey = ctx.req.headers["x-anthropic-key"] as string | undefined;
         const customModel = ctx.req.headers["x-custom-model"] as string | undefined;
+        const language = normalizeLanguage(ctx.req.headers["x-analysis-language"]);
 
         const result = await generateWeeklyAppProposals(ctx.user.id, activities, {
           geminiKey,
@@ -598,8 +607,10 @@ export const appRouter = router({
 
         const geminiKey = ctx.req.headers["x-gemini-key"] as string | undefined;
         const openaiKey = ctx.req.headers["x-openai-key"] as string | undefined;
+        const anthropicKey = ctx.req.headers["x-anthropic-key"] as string | undefined;
         const customModel = ctx.req.headers["x-custom-model"] as string | undefined;
-        const apiKeys = { geminiKey, openaiKey, customModel };
+        const language = normalizeLanguage(ctx.req.headers["x-analysis-language"]);
+        const apiKeys = { geminiKey, openaiKey, anthropicKey, customModel, language };
 
         // Run background pipeline (fire-and-forget), matching the project's own mode
         const pipeline =
@@ -650,7 +661,9 @@ export const appRouter = router({
         const apiKeys = {
           geminiKey: ctx.req.headers["x-gemini-key"] as string | undefined,
           openaiKey: ctx.req.headers["x-openai-key"] as string | undefined,
+          anthropicKey: ctx.req.headers["x-anthropic-key"] as string | undefined,
           customModel: ctx.req.headers["x-custom-model"] as string | undefined,
+          language: normalizeLanguage(ctx.req.headers["x-analysis-language"]),
         };
 
         const sources = await getResearchSources(input.researchId);
@@ -692,7 +705,7 @@ export type AppRouter = typeof appRouter;
 async function runResearchPipeline(
   researchId: number,
   keyword: string,
-  apiKeys: { geminiKey?: string; openaiKey?: string; customModel?: string },
+  apiKeys: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage },
   attachments: IdeaAttachments | null = null
 ) {
   try {
@@ -752,7 +765,7 @@ async function runTeardownPipeline(
   researchId: number,
   productName: string,
   targetUrl: string | null,
-  apiKeys: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  apiKeys: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ) {
   try {
     // 1. Collecting
@@ -809,7 +822,7 @@ async function runTeardownPipeline(
 async function runModifyPipeline(
   researchId: number,
   instruction: string,
-  apiKeys: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  apiKeys: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ) {
   try {
     const research = await getResearchById(researchId);

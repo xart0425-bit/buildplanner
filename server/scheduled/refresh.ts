@@ -8,6 +8,7 @@ import {
 import { runIncrementalAnalysisPipeline } from "../analyzer";
 import { generateTeardownMarkdown, type TeardownResult } from "../teardown";
 import { parseAttachments } from "@shared/attachments";
+import { normalizeLanguage } from "@shared/languages";
 
 export async function refreshScheduledResearchHandler(req: Request, res: Response) {
   console.log("[Scheduled Refresh] Received trigger request.");
@@ -35,7 +36,9 @@ export async function refreshScheduledResearchHandler(req: Request, res: Respons
     // 4. Run incremental analysis
     const geminiKey = req.headers["x-gemini-key"] as string | undefined;
     const openaiKey = req.headers["x-openai-key"] as string | undefined;
+    const anthropicKey = req.headers["x-anthropic-key"] as string | undefined;
     const customModel = req.headers["x-custom-model"] as string | undefined;
+    const language = normalizeLanguage(req.headers["x-analysis-language"]);
 
     // Teardown projects keep their own report template; without this the refresh would
     // silently replace the principles/fault-line analysis with a keyword-mode plan.
@@ -46,7 +49,7 @@ export async function refreshScheduledResearchHandler(req: Request, res: Respons
       research.id,
       isTeardown ? research.targetProduct ?? research.keyword : research.keyword,
       oldPlan ?? null,
-      { geminiKey, openaiKey, customModel },
+      { geminiKey, openaiKey, anthropicKey, customModel, language },
       isTeardown
         ? (analysis, sources) => generateTeardownMarkdown(teardown!, analysis, sources)
         : undefined,

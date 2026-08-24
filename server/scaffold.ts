@@ -8,19 +8,24 @@
  * user actually runs. Everything is zipped so it can be extracted into an empty folder
  * and driven immediately.
  */
-import { invokeLLM, type ResponseFormat } from "./_core/llm";
+import { invokeLLM, resolveProvider, type ResponseFormat } from "./_core/llm";
 import { parseLlmJson } from "./teardown";
 import type { AnalysisResult } from "./analyzer";
 import type { SourceItem } from "./collector";
 import type { TeardownResult } from "./teardown";
 import { createZip, type ZipEntry } from "./zip";
 import { isEmptyAttachments, type IdeaAttachments } from "@shared/attachments";
+import {
+  DEFAULT_ANALYSIS_LANGUAGE,
+  languageInstruction,
+  type AnalysisLanguage,
+} from "@shared/languages";
 
 export const TARGET_AGENTS = ["auto", "claude", "codex", "gemini", "cursor", "generic"] as const;
 export type TargetAgentInput = (typeof TARGET_AGENTS)[number];
 export type TargetAgent = Exclude<TargetAgentInput, "auto">;
 
-type ApiKeys = { geminiKey?: string; openaiKey?: string; customModel?: string };
+type ApiKeys = { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage };
 
 export interface SpecItem {
   id: string;
@@ -196,17 +201,31 @@ export function resolveTargetAgent(requested: TargetAgentInput, apiKeys: ApiKeys
   if (model.includes("gemini")) return "gemini";
   if (model.includes("gpt") || model.includes("o1") || model.includes("o3")) return "codex";
 
-  if (apiKeys.geminiKey || (!apiKeys.openaiKey && process.env.GEMINI_API_KEY)) return "gemini";
-  if (apiKeys.openaiKey || process.env.OPENAI_API_KEY) return "codex";
-  return "claude";
+  switch (resolveProvider(apiKeys)) {
+    case "anthropic":
+      return "claude";
+    case "gemini":
+      return "gemini";
+    case "openai":
+      return "codex";
+    default:
+      return "claude";
+  }
 }
 
 export function describeModel(apiKeys: ApiKeys): string {
   if (apiKeys.customModel) return apiKeys.customModel;
   if (process.env.LLM_MODEL) return process.env.LLM_MODEL;
-  if (apiKeys.geminiKey || (!apiKeys.openaiKey && process.env.GEMINI_API_KEY)) return "gemini-2.5-flash";
-  if (apiKeys.openaiKey || process.env.OPENAI_API_KEY) return "gpt-4o-mini";
-  return "기본 모델";
+  switch (resolveProvider(apiKeys)) {
+    case "anthropic":
+      return "claude-opus-5";
+    case "gemini":
+      return "gemini-2.5-flash";
+    case "openai":
+      return "gpt-4o-mini";
+    default:
+      return "기본 모델";
+  }
 }
 
 // ─── Spec pack generation ─────────────────────────────────────────────────────
@@ -316,7 +335,8 @@ function normalizeSpecPack(raw: Partial<SpecPack> | null, input: ScaffoldInput):
   };
 }
 
-export async function generateSpecPack(input: ScaffoldInput, apiKeys?: ApiKeys): Promise<SpecPack> {
+export async function generateSpecPack(input: ScaffoldInput, options?: ApiKeys): Promise<SpecPack> {
+  const { language = DEFAULT_ANALYSIS_LANGUAGE, ...apiKeys } = options ?? {};
   const { analysis, keyword, teardown, attachments } = input;
 
   const docsHint =
@@ -359,7 +379,7 @@ export async function generateSpecPack(input: ScaffoldInput, apiKeys?: ApiKeys):
 3. acceptanceCriteria는 **기계적으로 확인 가능한 문장**으로 쓴다. ("사용성이 좋다" 금지, "POST /api/x가 201과 id를 반환한다" 같은 형태)
 4. verification에는 실제로 실행할 명령을 적는다.
 5. 명령(devCommand 등)은 선택한 스택에서 실제로 통용되는 것으로 적는다.
-6. 모든 서술은 한국어. id/slug/경로/명령은 영문.
+6. ${languageInstruction(language)} id/slug/경로/명령은 영문 그대로 둔다.
 
 다음 JSON만 반환하세요:
 {
@@ -382,8 +402,7 @@ export async function generateSpecPack(input: ScaffoldInput, apiKeys?: ApiKeys):
       messages: [
         {
           role: "system",
-          content:
-            "당신은 Spec-Driven Development 전문가입니다. 항상 스키마에 정확히 맞는 유효한 JSON만 반환하세요.",
+          content: `당신은 Spec-Driven Development 전문가입니다. 항상 스키마에 정확히 맞는 유효한 JSON만 반환하세요. ${languageInstruction(language)}`,
         },
         { role: "user", content: prompt },
       ],

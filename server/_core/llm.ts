@@ -71,6 +71,7 @@ export type InvokeParams = {
   reasoning?: Record<string, unknown>;
   geminiKey?: string;
   openaiKey?: string;
+  anthropicKey?: string;
   customModel?: string;
 };
 
@@ -215,6 +216,38 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
+/**
+ * Anthropic is not OpenAI-compatible — different endpoint, different auth header, system
+ * prompt hoisted out of `messages`, required `max_tokens`, and content blocks instead of
+ * a plain string. It gets its own request path below rather than being bent into the
+ * shared OpenAI shape; the Gemini and OpenAI paths are untouched.
+ */
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+const ANTHROPIC_DEFAULT_MODEL = "claude-opus-5";
+/** Anthropic requires max_tokens; this keeps responses under the SDK/HTTP timeout. */
+const ANTHROPIC_DEFAULT_MAX_TOKENS = 16_000;
+
+export type LlmProvider = "anthropic" | "gemini" | "openai" | "forge";
+
+/**
+ * Which provider answers a request. A key entered in the app's settings wins over the
+ * environment, so a server-wide env key never hijacks a user's own choice.
+ */
+export function resolveProvider(keys: {
+  geminiKey?: string;
+  openaiKey?: string;
+  anthropicKey?: string;
+}): LlmProvider {
+  if (keys.anthropicKey) return "anthropic";
+  if (keys.geminiKey) return "gemini";
+  if (keys.openaiKey) return "openai";
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  return "forge";
+}
+
 const resolveApiUrl = (geminiKey?: string, openaiKey?: string) => {
   if (geminiKey || (!openaiKey && process.env.GEMINI_API_KEY)) {
     return "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions";
@@ -227,9 +260,19 @@ const resolveApiUrl = (geminiKey?: string, openaiKey?: string) => {
     : "https://forge.manus.im/v1/chat/completions";
 };
 
-const assertApiKey = (geminiKey?: string, openaiKey?: string) => {
-  if (!geminiKey && !openaiKey && !process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY && !ENV.forgeApiKey) {
-    throw new Error("API key is not configured. Please set GEMINI_API_KEY or OPENAI_API_KEY in your environment or settings.");
+const assertApiKey = (geminiKey?: string, openaiKey?: string, anthropicKey?: string) => {
+  if (
+    !geminiKey &&
+    !openaiKey &&
+    !anthropicKey &&
+    !process.env.GEMINI_API_KEY &&
+    !process.env.OPENAI_API_KEY &&
+    !process.env.ANTHROPIC_API_KEY &&
+    !ENV.forgeApiKey
+  ) {
+    throw new Error(
+      "API key is not configured. Please set GEMINI_API_KEY, OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment or settings."
+    );
   }
 };
 
@@ -349,6 +392,129 @@ const fetchWithBackoff = async (
     : new Error("LLM request failed after exhausting retries");
 };
 
+// ─── Anthropic (Claude) ───────────────────────────────────────────────────────
+
+type AnthropicBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+  | { type: "image"; source: { type: "url"; url: string } };
+
+/** Splits a `data:` URL into the media type and payload Anthropic expects separately. */
+function dataUrlToImageBlock(url: string): AnthropicBlock | null {
+  // `[\s\S]` instead of the `s` flag: this project compiles without an es2018 target.
+  const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(url);
+  if (!match) return url.startsWith("http") ? { type: "image", source: { type: "url", url } } : null;
+  return { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } };
+}
+
+function toAnthropicBlocks(content: MessageContent | MessageContent[]): AnthropicBlock[] {
+  return ensureArray(content)
+    .map((part): AnthropicBlock | null => {
+      if (typeof part === "string") return { type: "text", text: part };
+      if (part.type === "text") return { type: "text", text: part.text };
+      if (part.type === "image_url") return dataUrlToImageBlock(part.image_url.url);
+      // Anthropic takes documents through the Files API, which this app does not use.
+      return null;
+    })
+    .filter((block): block is AnthropicBlock => block !== null);
+}
+
+/**
+ * Calls Anthropic's Messages API and returns the result in the same shape the rest of the
+ * app already consumes, so callers do not need to know which provider answered.
+ */
+async function invokeAnthropic(params: InvokeParams): Promise<InvokeResult> {
+  const apiKey = params.anthropicKey || process.env.ANTHROPIC_API_KEY || "";
+  const model = params.customModel || params.model || process.env.LLM_MODEL || ANTHROPIC_DEFAULT_MODEL;
+
+  // System prompts are a top-level field here, not a message role.
+  const systemParts: string[] = [];
+  const messages: Array<{ role: "user" | "assistant"; content: AnthropicBlock[] }> = [];
+
+  for (const message of params.messages) {
+    if (message.role === "system") {
+      systemParts.push(
+        toAnthropicBlocks(message.content)
+          .filter((b): b is { type: "text"; text: string } => b.type === "text")
+          .map((b) => b.text)
+          .join("\n")
+      );
+      continue;
+    }
+    if (message.role !== "user" && message.role !== "assistant") continue;
+    const blocks = toAnthropicBlocks(message.content);
+    if (blocks.length > 0) messages.push({ role: message.role, content: blocks });
+  }
+
+  const wantsJson =
+    (params.response_format ?? params.responseFormat)?.type === "json_object" ||
+    (params.response_format ?? params.responseFormat)?.type === "json_schema";
+  if (wantsJson) {
+    // No prefill on current Claude models, so steer the format from the system prompt and
+    // let the callers' tolerant JSON parser handle any stray prose.
+    systemParts.push(
+      "Respond with a single valid JSON object and nothing else — no prose, no markdown code fences."
+    );
+  }
+
+  const payload: Record<string, unknown> = {
+    model,
+    max_tokens: params.max_tokens ?? params.maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
+    messages,
+  };
+  if (systemParts.length > 0) payload.system = systemParts.join("\n\n");
+
+  const response = await fetchWithBackoff(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
+    );
+  }
+
+  const data = (await response.json()) as {
+    id?: string;
+    model?: string;
+    stop_reason?: string | null;
+    content?: Array<{ type: string; text?: string }>;
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+
+  // Thinking blocks (adaptive thinking is on by default) carry no answer text — keep the
+  // text blocks only.
+  const text = (data.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text as string)
+    .join("");
+
+  return {
+    id: data.id ?? "",
+    created: Math.floor(Date.now() / 1000),
+    model: data.model ?? model,
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: text },
+        finish_reason: data.stop_reason ?? null,
+      },
+    ],
+    usage: {
+      prompt_tokens: data.usage?.input_tokens ?? 0,
+      completion_tokens: data.usage?.output_tokens ?? 0,
+      total_tokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
+    },
+  };
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const {
     messages,
@@ -366,10 +532,16 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     max_tokens,
     geminiKey,
     openaiKey,
+    anthropicKey,
     customModel,
   } = params;
 
-  assertApiKey(geminiKey, openaiKey);
+  assertApiKey(geminiKey, openaiKey, anthropicKey);
+
+  // Claude speaks its own protocol; branch before building the OpenAI-shaped payload.
+  if (resolveProvider({ geminiKey, openaiKey, anthropicKey }) === "anthropic") {
+    return invokeAnthropic(params);
+  }
 
   const payload: Record<string, unknown> = {
     messages: messages.map(normalizeMessage),

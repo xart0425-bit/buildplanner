@@ -16,6 +16,11 @@
 import { invokeLLM, type ResponseFormat } from "./_core/llm";
 import { type SourceItem } from "./collector";
 import { type AnalysisResult } from "./analyzer";
+import {
+  DEFAULT_ANALYSIS_LANGUAGE,
+  languageInstruction,
+  type AnalysisLanguage,
+} from "@shared/languages";
 
 export interface TeardownPrinciple {
   name: string;
@@ -71,7 +76,13 @@ export interface TeardownResult {
   regenerated: boolean;
 }
 
-type ApiKeys = { geminiKey?: string; openaiKey?: string; customModel?: string };
+type ApiKeys = {
+  geminiKey?: string;
+  openaiKey?: string;
+  anthropicKey?: string;
+  customModel?: string;
+  language?: AnalysisLanguage;
+};
 
 /** Below this differentiation score the design is judged too derivative and rebuilt once. */
 const DIVERGENCE_THRESHOLD = 60;
@@ -107,11 +118,18 @@ async function askJson<T>(
   system: string,
   prompt: string,
   fallback: T,
-  apiKeys?: ApiKeys
+  options?: ApiKeys
 ): Promise<T> {
+  // Every stage of the chain funnels through here, so the output language is enforced in
+  // one place. `language` is a prompt concern and must not reach the transport layer.
+  const { language = DEFAULT_ANALYSIS_LANGUAGE, ...apiKeys } = options ?? {};
+
   const response = await invokeLLM({
     messages: [
-      { role: "system", content: `${system} 항상 유효한 JSON만 반환하세요.` },
+      {
+        role: "system",
+        content: `${system} 항상 유효한 JSON만 반환하세요. ${languageInstruction(language)}`,
+      },
       { role: "user", content: prompt },
     ],
     response_format: { type: "json_object" } as ResponseFormat,

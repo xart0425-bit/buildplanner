@@ -5,6 +5,37 @@ import { invokeLLM, type MessageContent, type ResponseFormat } from "./_core/llm
 import { collectAllSources, type SourceItem } from "./collector";
 import { isEmptyAttachments, type IdeaAttachments } from "@shared/attachments";
 import {
+  DEFAULT_ANALYSIS_LANGUAGE,
+  languageInstruction,
+  type AnalysisLanguage,
+} from "@shared/languages";
+import { planStrings, type PlanStrings } from "./planStrings";
+
+/** Only affects the generated date string in the plan header. */
+const LOCALE_BY_LANGUAGE: Record<AnalysisLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  zh: "zh-CN",
+  fr: "fr-FR",
+  ru: "ru-RU",
+};
+
+/** Keys plus the language the model should write in. */
+export type LlmOptions = {
+  geminiKey?: string;
+  openaiKey?: string;
+  anthropicKey?: string;
+  customModel?: string;
+  language?: AnalysisLanguage;
+};
+
+/** Splits transport credentials from the language, which is a prompt concern. */
+export function splitLlmOptions(options?: LlmOptions) {
+  const { language, ...apiKeys } = options ?? {};
+  return { apiKeys, language: language ?? DEFAULT_ANALYSIS_LANGUAGE };
+}
+import {
   insertResearchSources,
   getResearchSources,
   upsertResearchPlan,
@@ -129,9 +160,10 @@ function buildImageContentParts(attachments?: IdeaAttachments | null): MessageCo
 export async function analyzeWithLLM(
   keyword: string,
   sources: SourceItem[],
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string },
+  options?: LlmOptions,
   attachments?: IdeaAttachments | null
 ): Promise<AnalysisResult> {
+  const { apiKeys, language } = splitLlmOptions(options);
   const githubSources = sources.filter((s) => s.sourceType === "github").slice(0, 5);
   const hfSources = sources.filter((s) => s.sourceType === "huggingface").slice(0, 5);
   const paperSources = sources.filter((s) => s.sourceType === "papers").slice(0, 4);
@@ -171,7 +203,9 @@ export async function analyzeWithLLM(
 ${sourcesSummary}
 ${docsBlock}${projectsBlock}
 
-다음 JSON 스키마에 맞게 분석 결과를 반환해주세요. 모든 내용은 한국어로 작성하세요:
+${languageInstruction(language)}
+
+다음 JSON 스키마에 맞게 분석 결과를 반환해주세요:
 
 {
   "coreTechnologies": ["핵심 기술 목록 (최대 8개)"],
@@ -210,8 +244,7 @@ ${docsBlock}${projectsBlock}
     messages: [
       {
         role: "system",
-        content:
-          "당신은 시니어 풀스택 개발자이자 AI/ML 전문가입니다. 항상 유효한 JSON만 반환하세요.",
+        content: `당신은 시니어 풀스택 개발자이자 AI/ML 전문가입니다. 항상 유효한 JSON만 반환하세요. ${languageInstruction(language)}`,
       },
       { role: "user", content: hasImages ? [prompt, ...imageParts] : prompt },
     ],
@@ -290,10 +323,13 @@ export function generateMarkdown(
   keyword: string,
   rawAnalysis: AnalysisResult,
   sources: SourceItem[],
-  attachments?: IdeaAttachments | null
+  attachments?: IdeaAttachments | null,
+  language: AnalysisLanguage = DEFAULT_ANALYSIS_LANGUAGE
 ): string {
   const analysis = normalizeAnalysis(keyword, rawAnalysis);
-  const now = new Date().toLocaleDateString("ko-KR", {
+  const t = planStrings(language);
+  const L = t.labels;
+  const now = new Date().toLocaleDateString(LOCALE_BY_LANGUAGE[language], {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -311,32 +347,32 @@ export function generateMarkdown(
     전문가: "🔴",
   }[analysis.implementationDifficulty] ?? "🟡";
 
-  return `# 앱 개발 계획서: ${keyword}
+  return `# ${t.title(keyword)}
 
-> 생성일: ${now}  
-> BuildPlanner로 자동 생성된 리서치 기반 개발 계획서입니다.
+> ${t.generatedOn}: ${now}
+> ${t.generatedBy}
 
 ---
 
-## 1. 아이디어 개요
+## 1. ${t.sections.overview}
 
 ${analysis.summary}
 
-### 구현 난이도
+### ${t.difficulty}
 
-${difficultyEmoji} **${analysis.implementationDifficulty}** — ${analysis.difficultyReason}
-
----
-
-## 2. 조사 키워드
-
-- 주요 키워드: \`${keyword}\`
-- 수집 소스: GitHub (${githubSources.length}개), Hugging Face (${hfSources.length}개), Papers with Code (${paperSources.length}개), Hacker News (${hnSources.length}개)
-- 총 수집 소스: ${sources.length}개
+${difficultyEmoji} **${t.difficultyLevels[analysis.implementationDifficulty] ?? analysis.implementationDifficulty}** — ${analysis.difficultyReason}
 
 ---
 
-## 3. 참고 오픈소스
+## 2. ${t.sections.keywords}
+
+- ${L.mainKeyword}: \`${keyword}\`
+- ${L.collectedFrom}: GitHub (${githubSources.length}), Hugging Face (${hfSources.length}), Papers with Code (${paperSources.length}), Hacker News (${hnSources.length})
+- ${L.totalSources}: ${sources.length}
+
+---
+
+## 3. ${t.sections.openSource}
 
 ${
   analysis.openSourceReferences.length > 0
@@ -346,52 +382,52 @@ ${
     : githubSources
         .map(
           (s) =>
-            `### [${s.title}](${s.url})\n${s.description || "설명 없음"}\n- ⭐ Stars: ${(s.metadata as Record<string, unknown>).stars ?? 0} | 언어: ${(s.metadata as Record<string, unknown>).language ?? "N/A"} | 라이선스: ${(s.metadata as Record<string, unknown>).license ?? "N/A"}`
+            `### [${s.title}](${s.url})\n${s.description || t.empty.noDescription}\n- ⭐ ${L.stars}: ${(s.metadata as Record<string, unknown>).stars ?? 0} | ${L.language}: ${(s.metadata as Record<string, unknown>).language ?? "N/A"} | ${L.license}: ${(s.metadata as Record<string, unknown>).license ?? "N/A"}`
         )
         .join("\n\n")
 }
 
 ---
 
-## 4. 참고 AI 모델
+## 4. ${t.sections.models}
 
 ${
   hfSources.length > 0
     ? hfSources
         .map(
           (s) =>
-            `### [${s.title}](${s.url})\n${s.description}\n- 다운로드: ${(s.metadata as Record<string, unknown>).downloads ?? 0} | 좋아요: ${(s.metadata as Record<string, unknown>).likes ?? 0}`
+            `### [${s.title}](${s.url})\n${s.description}\n- ${L.downloads}: ${(s.metadata as Record<string, unknown>).downloads ?? 0} | ${L.likes}: ${(s.metadata as Record<string, unknown>).likes ?? 0}`
         )
         .join("\n\n")
-    : "_관련 AI 모델을 찾지 못했습니다._"
+    : t.empty.models
 }
 
 ---
 
-## 5. 관련 논문/기술
+## 5. ${t.sections.papers}
 
 ${
   paperSources.length > 0
     ? paperSources
         .map(
           (s) =>
-            `### [${s.title}](${s.url})\n${s.description}\n- 코드 유무: ${(s.metadata as Record<string, unknown>).hasCode ? "✅ 있음" : "❌ 없음"} | GitHub Stars: ${(s.metadata as Record<string, unknown>).stars ?? 0}`
+            `### [${s.title}](${s.url})\n${s.description}\n- ${L.hasCode}: ${(s.metadata as Record<string, unknown>).hasCode ? `✅ ${L.yes}` : `❌ ${L.no}`} | GitHub ${L.stars}: ${(s.metadata as Record<string, unknown>).stars ?? 0}`
         )
         .join("\n\n")
-    : "_관련 논문을 찾지 못했습니다._"
+    : t.empty.papers
 }
 
 ---
 
-## 6. 핵심 기능
+## 6. ${t.sections.features}
 
 ${analysis.coreFeatures.map((f, i) => `${i + 1}. ${f}`).join("\n")}
 
 ---
 
-## 7. 기술 스택
+## 7. ${t.sections.stack}
 
-| 영역 | 기술 |
+| ${L.area} | ${L.technology} |
 |------|------|
 | Frontend | ${analysis.techStack.frontend.join(", ")} |
 | Backend | ${analysis.techStack.backend.join(", ")} |
@@ -399,25 +435,21 @@ ${analysis.coreFeatures.map((f, i) => `${i + 1}. ${f}`).join("\n")}
 | Database | ${analysis.techStack.database.join(", ")} |
 | Deployment | ${analysis.techStack.deployment.join(", ")} |
 
-### 핵심 기술
+### ${L.coreTech}
 
-${analysis.coreTechnologies.map((t) => `- ${t}`).join("\n")}
+${analysis.coreTechnologies.map((tech) => `- ${tech}`).join("\n")}
 
 ---
 
-## 8. 화면 구성
+## 8. ${t.sections.screens}
 
-> LLM 분석 기반 추천 화면 구성입니다.
+> ${L.screensNote}
 
-1. **메인 화면** — 키워드 입력 및 리서치 시작
-2. **리서치 결과 화면** — 수집된 소스 탭별 표시 (GitHub / HF / Papers / HN)
-3. **분석 요약 화면** — LLM 분석 결과 및 핵심 인사이트
-4. **계획서 화면** — Markdown 계획서 미리보기 및 다운로드
-5. **히스토리 화면** — 과거 리서치 목록 및 계획서 조회
+${t.defaultScreens.map((screen, i) => `${i + 1}. ${screen}`).join("\n")}
 ${
   analysis.designGuidelines && analysis.designGuidelines.length > 0
     ? `
-### 🎨 디자인 지침 (첨부 이미지 기반)
+### 🎨 ${L.designGuidelines}
 
 ${analysis.designGuidelines.map((g) => `- ${g}`).join("\n")}
 `
@@ -425,59 +457,59 @@ ${analysis.designGuidelines.map((g) => `- ${g}`).join("\n")}
 }
 ---
 
-## 9. 개발 단계
+## 9. ${t.sections.phases}
 
 ${analysis.developmentPhases
   .map(
     (p) =>
-      `### ${p.phase} (${p.duration})\n\n${p.tasks.map((t) => `- [ ] ${t}`).join("\n")}`
+      `### ${p.phase} (${p.duration})\n\n${p.tasks.map((task) => `- [ ] ${task}`).join("\n")}`
   )
   .join("\n\n")}
 
 ---
 
-## 10. 리스크와 라이선스 검토
+## 10. ${t.sections.risks}
 
-### 리스크 항목
+### ${L.riskItems}
 
-${analysis.risks.map((r) => `#### ⚠️ ${r.risk}\n- 대응 방안: ${r.mitigation}`).join("\n\n")}
+${analysis.risks.map((r) => `#### ⚠️ ${r.risk}\n- ${L.mitigation}: ${r.mitigation}`).join("\n\n")}
 
-### 라이선스 주의사항
+### ${L.licenseNotes}
 
 ${
   analysis.licenseNotes.length > 0
     ? analysis.licenseNotes.map((n) => `- ${n}`).join("\n")
-    : "- 수집된 오픈소스의 라이선스를 개별적으로 확인하세요.\n- MIT, Apache 2.0은 상업적 사용 가능하나, GPL은 소스코드 공개 의무가 있습니다."
+    : t.empty.defaultLicenseNote
 }
 
 ---
 
-## 11. 커뮤니티 반응 (Hacker News)
+## 11. ${t.sections.community}
 
 ${
   hnSources.length > 0
     ? hnSources
         .map(
           (s) =>
-            `- [${s.title}](${s.url}) — 포인트: ${(s.metadata as Record<string, unknown>).points ?? 0}, 댓글: ${(s.metadata as Record<string, unknown>).comments ?? 0}`
+            `- [${s.title}](${s.url}) — ${L.points}: ${(s.metadata as Record<string, unknown>).points ?? 0}, ${L.comments}: ${(s.metadata as Record<string, unknown>).comments ?? 0}`
         )
         .join("\n")
-    : "_관련 HN 토론을 찾지 못했습니다._"
+    : t.empty.community
 }
 
 ---
 
-## 12. 유사 서비스
+## 12. ${t.sections.similar}
 
 ${
   analysis.similarServices.length > 0
     ? analysis.similarServices.map((s) => `- **${s.name}**: ${s.description}`).join("\n")
-    : "_유사 서비스 정보를 분석하지 못했습니다._"
+    : t.empty.similar
 }
-${renderAttachmentsSection(attachments)}
+${renderAttachmentsSection(attachments, t)}
 ---
 
-*이 계획서는 BuildPlanner에 의해 자동 생성되었습니다. 실제 개발 시 추가적인 검토와 조정이 필요합니다.*
+*${L.footer}*
 `;
 }
 
@@ -486,8 +518,12 @@ ${renderAttachmentsSection(attachments)}
  * material it was written against. Only names are listed: `markdownContent` is a MySQL
  * TEXT column (64KB), so an inlined base64 image would overflow the row.
  */
-function renderAttachmentsSection(attachments?: IdeaAttachments | null): string {
+function renderAttachmentsSection(
+  attachments: IdeaAttachments | null | undefined,
+  t: PlanStrings
+): string {
   if (isEmptyAttachments(attachments)) return "";
+  const L = t.labels;
   const source = attachments as IdeaAttachments;
   // A row stored before a field existed omits it entirely; fill the gaps before rendering.
   const a: IdeaAttachments = {
@@ -498,27 +534,29 @@ function renderAttachmentsSection(attachments?: IdeaAttachments | null): string 
 
   const docs =
     a.docs.length > 0
-      ? `### 📄 참고 문서 (.md)\n\n${a.docs
-          .map((d) => `- \`${d.name}\` (${d.content.length.toLocaleString("ko-KR")}자)`)
+      ? `### 📄 ${L.referenceDocs}\n\n${a.docs
+          .map((d) => `- \`${d.name}\` (${d.content.length.toLocaleString("en-US")} ${L.characters})`)
           .join("\n")}`
       : "";
 
   const images =
     a.images.length > 0
-      ? `### 🖼️ 참고 이미지 (인터페이스/디자인)\n\n${a.images
-          .map((img) => `- \`${img.name}\` (${img.mimeType}) — 디자인 지침에 반영됨`)
+      ? `### 🖼️ ${L.referenceImages}\n\n${a.images
+          .map((img) => `- \`${img.name}\` (${img.mimeType}) — ${L.reflectedInDesign}`)
           .join("\n")}`
       : "";
 
   const projects =
     a.projects.length > 0
-      ? `### 📁 참고 로컬 프로젝트\n\n> 이 계획은 아래 기존 코드베이스를 이어받는 것을 전제로 작성되었습니다.\n\n${a.projects
+      ? `### 📁 ${L.referenceProjects}\n\n> ${L.projectsNote}\n\n${a.projects
           .map(
             (p) =>
-              `#### ${p.name}\n\n- 경로: \`${p.path}\`\n- 파일 ${p.fileCount.toLocaleString("ko-KR")}개${
+              `#### ${p.name}\n\n- ${L.path}: \`${p.path}\`\n- ${L.fileCount}: ${p.fileCount.toLocaleString("en-US")}${
                 p.languages.length > 0 ? ` · ${p.languages.join(", ")}` : ""
-              }${p.truncated ? " · 일부만 스캔됨" : ""}${
-                p.tree ? `\n\n<details><summary>디렉터리 구조</summary>\n\n\`\`\`\n${p.tree}\n\`\`\`\n\n</details>` : ""
+              }${p.truncated ? ` · ${L.partiallyScanned}` : ""}${
+                p.tree
+                  ? `\n\n<details><summary>${L.directoryTree}</summary>\n\n\`\`\`\n${p.tree}\n\`\`\`\n\n</details>`
+                  : ""
               }`
           )
           .join("\n\n")}`
@@ -527,9 +565,9 @@ function renderAttachmentsSection(attachments?: IdeaAttachments | null): string 
   return `
 ---
 
-## 13. 첨부 참고 자료
+## 13. ${t.sections.attachments}
 
-> 사용자가 직접 첨부한 자료이며, 위 계획은 이 자료를 우선 반영해 작성되었습니다.
+> ${L.attachmentsNote}
 
 ${[projects, docs, images].filter(Boolean).join("\n\n")}
 `;
@@ -540,8 +578,9 @@ export async function updatePlanWithLLM(
   sources: SourceItem[],
   existingAnalysis: AnalysisResult,
   instruction: string,
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  options?: LlmOptions
 ): Promise<AnalysisResult> {
+  const { apiKeys, language } = splitLlmOptions(options);
   const githubSources = sources.filter((s) => s.sourceType === "github").slice(0, 5);
   const hfSources = sources.filter((s) => s.sourceType === "huggingface").slice(0, 5);
   const paperSources = sources.filter((s) => s.sourceType === "papers").slice(0, 4);
@@ -577,7 +616,9 @@ ${sourcesSummary}
 "${instruction}"
 
 이 요청 사항을 반영하여 이전 분석 결과를 업데이트해 주세요. 요청에 맞춰 기술 스택 변경, 기능 추가/수정, 난이도 조절, 리스크 추가 등을 수행해야 합니다.
-반드시 아래 스키마에 부합하는 업데이트된 분석 결과 JSON 객체만 반환해 주세요. 모든 내용은 한국어로 작성하세요.
+반드시 아래 스키마에 부합하는 업데이트된 분석 결과 JSON 객체만 반환해 주세요.
+
+${languageInstruction(language)}
 
 JSON 스키마:
 {
@@ -612,7 +653,7 @@ JSON 스키마:
     messages: [
       {
         role: "system",
-        content: "당신은 시니어 풀스택 개발자이자 AI/ML 전문가입니다. 항상 요청된 수정사항을 반영한 유효한 JSON만 반환하세요.",
+        content: `당신은 시니어 풀스택 개발자이자 AI/ML 전문가입니다. 항상 요청된 수정사항을 반영한 유효한 JSON만 반환하세요. ${languageInstruction(language)}`,
       },
       { role: "user", content: prompt },
     ],
@@ -631,7 +672,7 @@ JSON 스키마:
 
 export async function extractSearchKeyword(
   rawInput: string,
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  apiKeys?: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ): Promise<string> {
   const trimmed = rawInput.trim();
   if (trimmed.length === 0) return "";
@@ -683,7 +724,7 @@ export async function runIncrementalAnalysisPipeline(
   researchId: number,
   keyword: string,
   oldPlan: { analysisJson: any; markdownContent: string | null } | null,
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string },
+  apiKeys?: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage },
   /**
    * Overrides report rendering. Teardown projects pass their own renderer so a scheduled
    * refresh does not replace the teardown report with the keyword-mode template.
@@ -790,7 +831,7 @@ export interface WeeklyProposalResult {
 
 export async function generateProposalDetailWithLLM(
   prop: { title: string; keyword: string; reason: string; difficulty: string; features: string[] },
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  apiKeys?: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ): Promise<AnalysisResult> {
   const prompt = `당신은 시니어 소프트웨어 아키텍트이자 기술 연구원입니다. 다음 생산성 도구 제안을 바탕으로 실제 구체적인 구현을 위한 상세 기술 스택 분석 및 개발 계획(JSON)을 설계해 주세요.
 
@@ -877,7 +918,7 @@ export async function generateProposalDetailWithLLM(
 export async function generateWeeklyAppProposals(
   userId: number,
   activities: DesktopActivity[],
-  apiKeys?: { geminiKey?: string; openaiKey?: string; customModel?: string }
+  apiKeys?: { geminiKey?: string; openaiKey?: string; anthropicKey?: string; customModel?: string; language?: AnalysisLanguage }
 ): Promise<WeeklyProposalResult> {
   console.log(`[Research] Starting weekly app proposals generation for user ID ${userId} with ${activities.length} logs...`);
 

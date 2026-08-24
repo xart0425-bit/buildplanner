@@ -82,20 +82,40 @@ describe("generateMarkdown", () => {
     },
   ];
 
-  it("should generate markdown with all required sections", () => {
+  it("defaults to English and includes every section", () => {
     const md = generateMarkdown("AI chatbot", mockAnalysis, mockSources);
 
-    expect(md).toContain("# 앱 개발 계획서: AI chatbot");
-    expect(md).toContain("## 1. 아이디어 개요");
-    expect(md).toContain("## 2. 조사 키워드");
-    expect(md).toContain("## 3. 참고 오픈소스");
-    expect(md).toContain("## 4. 참고 AI 모델");
-    expect(md).toContain("## 5. 관련 논문/기술");
-    expect(md).toContain("## 6. 핵심 기능");
-    expect(md).toContain("## 7. 기술 스택");
-    expect(md).toContain("## 8. 화면 구성");
-    expect(md).toContain("## 9. 개발 단계");
-    expect(md).toContain("## 10. 리스크와 라이선스 검토");
+    expect(md).toContain("# App Development Plan: AI chatbot");
+    expect(md).toContain("## 1. Overview");
+    expect(md).toContain("## 2. Research Keywords");
+    expect(md).toContain("## 3. Reference Open Source");
+    expect(md).toContain("## 4. Reference AI Models");
+    expect(md).toContain("## 5. Related Papers");
+    expect(md).toContain("## 6. Core Features");
+    expect(md).toContain("## 7. Tech Stack");
+    expect(md).toContain("## 8. Screen Structure");
+    expect(md).toContain("## 9. Development Phases");
+    expect(md).toContain("## 10. Risks and Licensing");
+  });
+
+  it("renders the document in the requested language", () => {
+    const ko = generateMarkdown("AI chatbot", mockAnalysis, mockSources, null, "ko");
+    expect(ko).toContain("# 앱 개발 계획서: AI chatbot");
+    expect(ko).toContain("## 1. 아이디어 개요");
+    expect(ko).toContain("| 영역 | 기술 |");
+
+    const ja = generateMarkdown("AI chatbot", mockAnalysis, mockSources, null, "ja");
+    expect(ja).toContain("# アプリ開発計画書: AI chatbot");
+    expect(ja).toContain("## 1. アイデア概要");
+
+    const fr = generateMarkdown("AI chatbot", mockAnalysis, mockSources, null, "fr");
+    expect(fr).toContain("## 1. Vue d'ensemble");
+
+    const ru = generateMarkdown("AI chatbot", mockAnalysis, mockSources, null, "ru");
+    expect(ru).toContain("## 1. Обзор идеи");
+
+    const zh = generateMarkdown("AI chatbot", mockAnalysis, mockSources, null, "zh");
+    expect(zh).toContain("## 1. 创意概述");
   });
 
   it("should include keyword in the markdown", () => {
@@ -103,14 +123,14 @@ describe("generateMarkdown", () => {
     expect(md).toContain("education chatbot");
   });
 
-  it("should include difficulty level", () => {
-    const md = generateMarkdown("test", mockAnalysis, mockSources);
-    expect(md).toContain("중급");
+  it("translates the difficulty level label", () => {
+    expect(generateMarkdown("test", mockAnalysis, mockSources)).toContain("Intermediate");
+    expect(generateMarkdown("test", mockAnalysis, mockSources, null, "ko")).toContain("중급");
   });
 
   it("should include tech stack table", () => {
     const md = generateMarkdown("test", mockAnalysis, mockSources);
-    expect(md).toContain("| 영역 | 기술 |");
+    expect(md).toContain("| Area | Technology |");
     expect(md).toContain("React");
     expect(md).toContain("Node.js");
   });
@@ -123,7 +143,7 @@ describe("generateMarkdown", () => {
 
   it("should handle empty sources gracefully", () => {
     const md = generateMarkdown("test", mockAnalysis, []);
-    expect(md).toContain("# 앱 개발 계획서: test");
+    expect(md).toContain("# App Development Plan: test");
     expect(md).not.toThrow;
   });
 });
@@ -206,7 +226,7 @@ describe("idea attachments", () => {
 
   it("lists referenced project paths in the plan", () => {
     const md = generateMarkdown("AI chatbot", mockAnalysisFixture, [], attachments);
-    expect(md).toContain("참고 로컬 프로젝트");
+    expect(md).toContain("Referenced local projects");
     expect(md).toContain("Z:\\work\\legacy-app");
   });
 
@@ -218,7 +238,7 @@ describe("idea attachments", () => {
 
   it("lists attachments in the generated plan without inlining image data", () => {
     const md = generateMarkdown("AI chatbot", mockAnalysisFixture, [], attachments);
-    expect(md).toContain("## 13. 첨부 참고 자료");
+    expect(md).toContain("## 13. Attached Reference Material");
     expect(md).toContain("spec.md");
     expect(md).toContain("hero.png");
     expect(md).not.toContain("base64,");
@@ -226,7 +246,7 @@ describe("idea attachments", () => {
 
   it("omits the attachment section when nothing was attached", () => {
     const md = generateMarkdown("AI chatbot", mockAnalysisFixture, []);
-    expect(md).not.toContain("첨부 참고 자료");
+    expect(md).not.toContain("Attached Reference Material");
   });
 
   it("renders design guidelines derived from reference images", () => {
@@ -236,7 +256,7 @@ describe("idea attachments", () => {
       [],
       attachments
     );
-    expect(md).toContain("디자인 지침");
+    expect(md).toContain("Design Guidelines");
     expect(md).toContain("다크 테마 고정");
   });
 
