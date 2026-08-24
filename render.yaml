@@ -19,5 +19,8 @@ services:
       # 호스팅된 인스턴스는 서버 디스크를 노출하지 않습니다.
       - key: ALLOW_LOCAL_FS
         value: "false"
+      # 방문자마다 별도의 게스트 계정을 발급해 서로의 리서치가 섞이지 않게 합니다.
+      - key: GUEST_SESSIONS
+        value: per-browser
       # DATABASE_URL 을 주지 않으면 인메모리로 동작합니다(재시작 시 초기화).
       # 영구 보관하려면 Render 대시보드에서 MySQL 연결 문자열을 추가하세요.
