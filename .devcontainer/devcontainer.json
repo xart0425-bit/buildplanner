@@ -1,0 +1,20 @@
+{
+  "name": "BuildPlanner",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "BuildPlanner",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "corepack enable && pnpm install",
+  "postAttachCommand": {
+    "hint": "echo '\\n▶ pnpm dev  로 서버를 띄운 뒤 3000 포트 미리보기를 여세요. LLM 키는 앱 안 [설정]에 넣습니다.\\n'"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "bradlc.vscode-tailwindcss"]
+    }
+  }
+}

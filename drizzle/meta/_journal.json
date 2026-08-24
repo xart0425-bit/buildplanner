@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1781503504818,
+      "tag": "0000_wealthy_tomorrow_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1781503644098,
+      "tag": "0001_polite_tinkerer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1782181533496,
+      "tag": "0002_quick_nocturne",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787280308627,
+      "tag": "0003_next_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787431940260,
+      "tag": "0004_natural_victor_mancha",
+      "breakpoints": true
+    }
+  ]
+}
