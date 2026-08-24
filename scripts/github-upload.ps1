@@ -8,7 +8,9 @@
 #>
 param([string]$Message = "")
 
-$ErrorActionPreference = "Stop"
+# git 은 진행 상황을 stderr 로 내보냅니다. "Stop" 이면 그 정상 출력이 스크립트를
+# 중단시키므로, 성공 여부는 예외가 아니라 $LASTEXITCODE 로만 판단합니다.
+$ErrorActionPreference = "Continue"
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
 
 # 스크립트 위치의 상위 폴더 = 저장소 루트
@@ -64,8 +66,9 @@ Write-Line "[2/3] 커밋 중..." "White"
 if ($LASTEXITCODE -ne 0) { Write-Line "[실패] git commit 오류" "Red"; exit 1 }
 
 Write-Line "[3/3] GitHub로 업로드 중..." "White"
-# git push 는 진행 상황을 stderr 로 보냅니다. 오류가 아니므로 그대로 흘려보냅니다.
-& $git push 2>&1 | ForEach-Object { Write-Host $_ }
+# 리다이렉트하지 않습니다. PowerShell 5.1 에서 네이티브 exe 의 stderr 를 2>&1 로
+# 넘기면 정상 진행 메시지까지 빨간 오류처럼 표시됩니다.
+& $git push
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Line "============================================" "Red"
